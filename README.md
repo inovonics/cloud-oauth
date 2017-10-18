@@ -1,2 +1,2 @@
 # cloud-oauth
-Implementation of OAuth using Redis as the backing store.
+Classes implementing functionality for flask-oauthlib using Redis as the backing store.
