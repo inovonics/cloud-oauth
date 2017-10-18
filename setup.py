@@ -18,5 +18,8 @@ setup(
     author_email='dwilliams@inovonics.com',
     license='MIT',
     install_requires=[line.strip() for line in open('requirements.txt', 'r')],
+    dependency_links=[
+        'git+https://github.com/inovonics/cloud-datastore.git'
+    ],
     packages=['inovonics.cloud.oauth']
 )
