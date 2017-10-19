@@ -3,6 +3,12 @@
 # === IMPORTS ===
 from .__version__ import __version__
 
+from .datastore import OAuthClients, OAuthClient
+from .datastore import OAuthTokens, OAuthToken
+from .datastore import OAuthUsers, OAuthUser
+
+from .inooauth2provider import InoOAuth2Provider
+
 # === GLOBALS ===
 
 # === FUNCTIONS ===
