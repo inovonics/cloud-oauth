@@ -7,7 +7,7 @@ import os
 from flask import Flask
 
 from inovonics.cloud.datastore import InoRedis
-from inovonics.cloud.oauth import InoOAuth2Provider, OAuthTokenHandler, OAuthRevokeHandler
+from inovonics.cloud.oauth import InoOAuth2Provider, oauth_register_handlers
 
 # === GLOBALS ===
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -19,8 +19,9 @@ dstore = InoRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 app = Flask(__name__)
 
 oauth = InoOAuth2Provider(app, dstore)
-app.add_url_rule('/oauth/token', view_func=OAuthTokenHandler.as_view('oauth_token_handler'))
-app.add_url_rule('/oauth/revoke', view_func=OAuthRevokeHandler.as_view('oauth_revoke_handler'))
+#app.add_url_rule('/oauth/token', view_func=OAuthTokenHandler.as_view('oauth_token_handler'))
+#app.add_url_rule('/oauth/revoke', view_func=OAuthRevokeHandler.as_view('oauth_revoke_handler'))
+oauth_register_handlers(app=app, oauth=oauth, token_path='/oauth/token', revoke_path='/oauth/revoke')
 
 # === FUNCTIONS ===
 @app.route('/')

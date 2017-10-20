@@ -8,7 +8,7 @@ from .datastore import OAuthTokens, OAuthToken
 from .datastore import OAuthUsers, OAuthUser
 
 from .inooauth2provider import InoOAuth2Provider
-from .handlers import OAuthTokenHandler, OAuthRevokeHandler
+from .handlers import OAuthTokenHandler, OAuthRevokeHandler, oauth_register_handlers
 
 # === GLOBALS ===
 

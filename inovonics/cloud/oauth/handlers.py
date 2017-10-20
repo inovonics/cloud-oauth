@@ -5,37 +5,38 @@ import logging
 
 from flask.views import View
 
+from .__version__ import __version__
+
 # === GLOBALS ===
 
 # === FUNCTIONS ===
+# Need a handler registration function...  Or need to super the init function.
+def oauth_register_handlers(app, oauth, token_path, refresh_path = None, revoke_path = None):
+    # Register the token handler to the app.
+    OAuthTokenHandler.decorators = [oauth.token_handler]
+    app.add_url_rule(token_path, view_func=OAuthTokenHandler.as_view('oauth_token_handler'))
+    # Register the refresh handler to the app if the path is specified
+    if refresh_path:
+        pass # Refresh not implemented
+    # Register the revoke handler to the app if the path is specified
+    if revoke_path:
+        OAuthRevokeHandler.decorators = [oauth.revoke_handler]
+        app.add_url_rule(revoke_path, view_func=OAuthRevokeHandler.as_view('oauth_revoke_handler'))
 
 # === CLASSES ===
 class OAuthTokenHandler(View):
     methods = ['POST']
 
-    @oauth.token_handler
+    #@oauth.token_handler
     def dispatch_request(self):
-        users = Users(dstore)
-        
         dispatch_info = {}
         dispatch_info['version'] = __version__
-
-        try:
-            user_id = users.get_user_id(request.form.get('username'))
-            user = users.get_user(user_id.result)
-            dispatch_info['user_id'] = user.user_id
-            dispatch_info['username'] = user.username
-            dispatch_info['first_name'] = user.first_name
-            dispatch_info['last_name'] = user.last_name
-        except ExistsException:
-            logging.debug("No user info available, must be client key/secret.")
-
         return dispatch_info
 
 class OAuthRevokeHandler(View):
     methods = ['POST']
 
-    @oauth.revoke_handler
+    #@oauth.revoke_handler
     def dispatch_request(self):
         pass
 
