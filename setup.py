@@ -18,5 +18,5 @@ setup(
     author_email='dwilliams@inovonics.com',
     license='MIT',
     install_requires=[line.strip() for line in open('requirements.txt', 'r')],
-    packages=['inovonics.cloud.oauth']
+    packages=['inovonics.cloud.oauth', 'inovonics.cloud.oauth.datastore']
 )
