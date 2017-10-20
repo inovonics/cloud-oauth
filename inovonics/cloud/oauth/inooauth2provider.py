@@ -17,9 +17,13 @@ from .datastore import OAuthUsers, OAuthUser
 
 # === CLASSES ===
 class InoOAuth2Provider(OAuth2Provider):
-    def __init__(self, app=None, dstore):
+    def __init__(self, app=None, dstore=None):
         super().__init__(app)
         self.logger = logging.getLogger(type(self).__name__)
+        if dstore:
+            self.init_dstore(dstore)
+
+    def init_dstore(self, dstore):
         self.dstore = dstore
 
     def _clientgetter(self, client_id):
