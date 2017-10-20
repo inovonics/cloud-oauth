@@ -21,7 +21,7 @@ app = Flask(__name__)
 oauth = InoOAuth2Provider(app, dstore)
 #app.add_url_rule('/oauth/token', view_func=OAuthTokenHandler.as_view('oauth_token_handler'))
 #app.add_url_rule('/oauth/revoke', view_func=OAuthRevokeHandler.as_view('oauth_revoke_handler'))
-oauth_register_handlers(app=app, oauth=oauth, token_path='/oauth/token', revoke_path='/oauth/revoke')
+app = oauth_register_handlers(app=app, oauth=oauth, token_path='/oauth/token', revoke_path='/oauth/revoke')
 
 # === FUNCTIONS ===
 @app.route('/')
