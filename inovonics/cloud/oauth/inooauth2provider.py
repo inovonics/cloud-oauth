@@ -21,35 +21,81 @@ class InoOAuth2Provider(OAuth2Provider):
         super().__init__(app)
         self.logger = logging.getLogger(type(self).__name__)
         self.dstore = dstore
-        
+
     def _clientgetter(self, client_id):
-        pass
-    
+        self.logger.debug("client_id: %s", client_id)
+        clients = OAuthClients(self.dstore)
+        client = clients.get(client_id)
+        # Client is an object
+        return client
+
     def _grantgetter(self, client_id, code):
         return None  # Grant tokens currently not allowed
-    
+
     def _grantsetter(self, client_id, code, request, *args, **kwargs):
         return None  # Grant tokens currently not allowed
-    
+
     def _tokengetter(self, access_token=None, refresh_token=None):
-        logging.debug("Access Token: %s, Refresh Token: %s", access_token, refresh_token)
-        tokens = OAuthTokens(dstore)
+        self.logger.debug("access_token: %s, refresh_token: %s", access_token, refresh_token)
+        tokens = OAuthTokens(self.dstore)
         try:
             token = None
             if access_token:
                 token = tokens.get_by_access_token(access_token)
             elif refresh_token:
                 token = tokens.get_by_refresh_token(refresh_token)
-            logging.debug("Token Expiry: {}".format(token.expires))
+            self.logger.debug("Token Expiry: %s", token.expires)
             return token
         except NotExistsException:
-            logging.info("Token does not exist.")
+            self.logger.debug("Token does not exist.")
         return None
-    
+
     def _tokensetter(self, otoken, request, *args, **kwargs):
-        pass
-    
+        self.logger.debug("OToken: %s", otoken)
+        tokens = OAuthTokens(self.dstore)
+
+        expires_in = otoken['expires_in']
+        expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=expires_in)
+        self.logger.debug("New Token Expires: %s", expires)
+
+        token = OAuthToken()
+        token.access_token = otoken['access_token']
+        token.refresh_token = otoken.get('refresh_token')
+        token.token_type = otoken['token_type']
+        token.scopes = otoken['scope']
+        token.expires = expires
+        token.client_id = request.client.client_id
+        if type(request.user) == User:
+            self.logger.debug("Setting user data in OAuth token")
+            token.user = request.user.username
+            # Overriding the scopes from the user for now.
+            # FIXME: The OAuth2RequestValidator should be subclassed and
+            #        this should be fixed in the get_default_scopes method.
+            token.scopes = request.user.scopes
+            otoken['scope'] = request.user.scopes
+        else:
+            token.user = ''
+
+        # Make sure the scopes value is a list (sometimes comes in as a string)
+        if isinstance(token.scopes, str):
+            token.scopes = [token.scopes]
+
+        tokens.create(token, expires_in)
+        return token
+
     def _usergetter(self, username, password, *args, **kwargs):
-        pass
+        self.logger.debug("username: %s, password: %s", username, password)
+        users = OAuthUsers(self.dstore)
+    
+        try:
+            user_id = users.get_user_id(username)
+            user = users.get_user(user_id.result)
+        except ExistsException:
+            return None
+    
+        # Password Check
+        if user.check_password(password):
+            return user
+        return None
 
 # === MAIN ===
