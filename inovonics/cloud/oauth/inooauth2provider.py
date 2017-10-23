@@ -70,7 +70,7 @@ class InoOAuth2Provider(OAuth2Provider):
         token.scopes = otoken['scope']
         token.expires = expires
         token.client_id = request.client.client_id
-        if type(request.user) == User:
+        if type(request.user) == OAuthUser:
             self.logger.debug("Setting user data in OAuth token")
             token.user = request.user.username
             # Overriding the scopes from the user for now.
