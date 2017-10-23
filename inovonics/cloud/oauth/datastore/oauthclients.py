@@ -15,9 +15,9 @@ from inovonics.cloud.datastore import ExistsException, InvalidDataException, Not
 # === CLASSES ===
 class OAuthClients(InoModelBase):
     def get_by_id(self, client_id, pipe=None):
-        client_obj = Client()
+        client_obj = OAuthClient()
         with redpipe.autoexec(pipe)as pipe:
-            db_obj = DBClient(client_id, pipe)
+            db_obj = DBOAuthClient(client_id, pipe)
 
             def cb():
                 if db_obj.persisted:
@@ -83,7 +83,7 @@ class OAuthClients(InoModelBase):
     def _upsert(self, client, pipe=None):
         with redpipe.autoexec(pipe) as pipe:
             # Create/update the user and save it to redis
-            db_obj = DBClient(client.get_all_dict(), pipe)
+            db_obj = DBOAuthClient(client.get_all_dict(), pipe)
 
 class OAuthClient:
     """
