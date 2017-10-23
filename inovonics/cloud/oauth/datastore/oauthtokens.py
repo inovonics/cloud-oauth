@@ -18,9 +18,9 @@ from inovonics.cloud.datastore import ExistsException, InvalidDataException, Not
 # === CLASSES ===
 class OAuthTokens(InoModelBase):
     def get_by_id(self, token_id, pipe=None):
-        token_obj = Token()
+        token_obj = OAuthToken()
         with redpipe.autoexec(pipe)as pipe:
-            db_obj = DBToken(token_id, pipe)
+            db_obj = DBOAuthToken(token_id, pipe)
 
             def cb():
                 if db_obj.persisted:
@@ -72,7 +72,7 @@ class OAuthTokens(InoModelBase):
     def _upsert(self, token, expiry = 0, pipe=None):
         with redpipe.autoexec(pipe) as pipe:
             # Create/update the token and save it to redis
-            db_token = DBToken(token.get_all_dict(), pipe)
+            db_token = DBOAuthToken(token.get_all_dict(), pipe)
             # Add lookup keys for access and refresh tokens
             if expiry <= 0:
                 # Set the secondary keys
