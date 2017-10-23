@@ -25,9 +25,6 @@ def oauth_register_handlers(app, oauth, token_path, revoke_path = None):
 # === CLASSES ===
 class OAuthTokenHandler(View):
     methods = ['POST']
-    
-    def __init__(self, oauth):
-        self.decorators.append(oauth.token_handler)
 
     #@oauth.token_handler
     def dispatch_request(self):
