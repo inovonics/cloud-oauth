@@ -13,8 +13,8 @@ from .__version__ import __version__
 # Need a handler registration function...  Or need to super the init function.
 def oauth_register_handlers(app, oauth, token_path, revoke_path = None):
     # Register the token handler to the app.
-    OAuthTokenHandler.decorators = [oauth.token_handler]
-    app.add_url_rule(token_path, view_func=OAuthTokenHandler.as_view('oauth_token_handler'))
+    #OAuthTokenHandler.decorators = [oauth.token_handler]
+    app.add_url_rule(token_path, view_func=OAuthTokenHandler.as_view('oauth_token_handler', oauth=oauth))
     # Register the revoke handler to the app if the path is specified
     if revoke_path:
         OAuthRevokeHandler.decorators = [oauth.revoke_handler]
@@ -25,6 +25,9 @@ def oauth_register_handlers(app, oauth, token_path, revoke_path = None):
 # === CLASSES ===
 class OAuthTokenHandler(View):
     methods = ['POST']
+    
+    def __init__(self, oauth):
+        self.decorators.append(oauth.token_handler)
 
     #@oauth.token_handler
     def dispatch_request(self):
