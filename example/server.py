@@ -9,6 +9,8 @@ from flask import Flask
 from inovonics.cloud.datastore import InoRedis
 from inovonics.cloud.oauth import InoOAuth2Provider, oauth_register_handlers
 
+from inovonics.cloud.oauth import OAuthClients, OAuthClient, OAuthUsers, OAuthUser
+
 # === GLOBALS ===
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = os.getenv('REDIS_PORT', 6379)
@@ -24,6 +26,37 @@ oauth = InoOAuth2Provider(app, dstore)
 oauth_register_handlers(app, oauth, token_path='/oauth/token', revoke_path='/oauth/revoke')
 
 # === FUNCTIONS ===
+@app.before_first_request
+def db_init():
+    # This flushes the Redis database and pushed a default user and a couple of default clients into the database.
+    dstore.redis.flushdb()
+    users = OAuthUsers()
+    
+    user1_data = {
+        'username': 'admin@example.com',
+        'first_name': 'Admin',
+        'last_name': 'Testuser',
+        'is_active': True,
+        'scopes': ['protected']
+    }
+    user1 = OAuthUser(user1_data)
+    user1.update_password('<insert_password_here>')
+    users.create(user1)
+    
+    client1_data = {
+        'name': 'Test Client One',
+        'client_id': '<insert_client_id_here>', # API_KEY
+        'client_secret': '', # API_SECRET
+        'user': 'admin@example.com',
+        'is_confidential': False,
+        'allowed_grant_types': ['password'],
+        'redirect_uris': [],
+        'default_scopes': ['protected'],
+        'allowed_scopes': ['protected']
+    }
+    client1 = Client(client1_data)
+    clients.create(client1)
+
 @app.route('/')
 def static_root():
     return app.send_static_file('index.html')
