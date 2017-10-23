@@ -7,7 +7,7 @@ import os
 from flask import Flask
 
 from inovonics.cloud.datastore import InoRedis
-from inovonics.cloud.oauth import InoOAuth2Provider #, oauth_register_handlers
+from inovonics.cloud.oauth import InoOAuth2Provider, oauth_register_handlers
 
 # === GLOBALS ===
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
