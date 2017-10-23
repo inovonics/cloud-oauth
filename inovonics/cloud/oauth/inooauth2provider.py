@@ -93,8 +93,8 @@ class InoOAuth2Provider(OAuth2Provider):
     
         try:
             user_id = users.get_user_id(username)
-            user = users.get_user(user_id.result)
-        except ExistsException:
+            user = users.get_by_id(user_id.result)
+        except NotExistsException:
             return None
     
         # Password Check
