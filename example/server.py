@@ -55,7 +55,7 @@ def db_init():
         'default_scopes': ['protected'],
         'allowed_scopes': ['protected']
     }
-    client1 = Client(client1_data)
+    client1 = OAuthClient(client1_data)
     clients.create(client1)
 
 @app.route('/')
