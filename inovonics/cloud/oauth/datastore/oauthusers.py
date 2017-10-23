@@ -89,7 +89,7 @@ class OAuthUsers(InoModelBase):
             all_names = self.get_usernames(pipe)
             all_exists = []
             for user in users:
-                all_exists.append(self.user_exists(user.user_id, pipe=pipe))
+                all_exists.append(self._exists(user.user_id, pipe=pipe))
 
         # Return if any of the objects already exist
         for ex in all_exists:
@@ -103,7 +103,7 @@ class OAuthUsers(InoModelBase):
         # Create all the entries
         with redpipe.autoexec() as pipe:
             for user in users:
-                self._upsert_user(user, pipe=pipe)
+                self._upsert(user, pipe=pipe)
 
     def update(self, users):
         # If users is a singular object, make it a list of one
@@ -117,7 +117,7 @@ class OAuthUsers(InoModelBase):
         with redpipe.autoexec() as pipe:
             all_exists = []
             for user in users:
-                all_exists.append(self.user_exists(user.user_id, pipe=pipe))
+                all_exists.append(self._exists(user.user_id, pipe=pipe))
         # Return if any of the objects don't already exist
         for ex in all_exists:
             if ex.IS(False):
@@ -126,7 +126,7 @@ class OAuthUsers(InoModelBase):
         # Update all the entries
         with redpipe.autoexec() as pipe:
             for user in users:
-                self._upsert_user(user, pipe=pipe)
+                self._upsert(user, pipe=pipe)
 
     def update_password(self, user_id, old_password, new_password):
         # Validate given data
