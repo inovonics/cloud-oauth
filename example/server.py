@@ -30,7 +30,8 @@ oauth_register_handlers(app, oauth, token_path='/oauth/token', revoke_path='/oau
 def db_init():
     # This flushes the Redis database and pushed a default user and a couple of default clients into the database.
     dstore.redis.flushdb()
-    users = OAuthUsers()
+    users = OAuthUsers(dstore)
+    clients = OAuthClients(dstore)
     
     user1_data = {
         'username': 'admin@example.com',
