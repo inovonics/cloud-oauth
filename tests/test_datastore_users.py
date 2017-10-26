@@ -132,11 +132,19 @@ class TestCasesDatastoreUsers(unittest.TestCase):
     @parameterized.expand(update_user_data, testcase_func_name=custom_name_func)
     def test_update_user(self, username, update_field, update_value):
         self.logger.info("Running test_update_user")
-        # Create the user via direct calls to redis
+        # Retrieve the user data
+        tmp_user_id = self.dstore.redis.get("oauth:user:{}".format(username)).decode('utf-8')
+        self.logger.debug("tmp_user_id: %s", tmp_user_id)
+        tmp_user = self.db_users.get_by_id(tmp_user_id)
         
-        # Retrieve the user data and change the values
+        # Change the values
+        if update_field == "password":
+            tmp_user.update_password(update_value)
+        else:
+            tmp_user[update_field] = update_value
         
         # Update the user via the datastore
+        self.db_users.update(tmp_user)
         
         # Verify the correct data via direct calls to redis
 
@@ -146,7 +154,7 @@ class TestCasesDatastoreUsers(unittest.TestCase):
         self.dstore.redis.flushdb()
 
     def _load_default_user_data(self):
-        self.logger.info("Loading the deafult user set")
+        self.logger.info("Loading the default user set")
         # Load each of the default users
         with redpipe.autoexec() as pipe:
             for user in default_user_data:
