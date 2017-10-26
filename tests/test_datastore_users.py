@@ -13,6 +13,8 @@ from inovonics.cloud.datastore import DuplicateException, ExistsException, Inval
 from helpers import getDStore
 
 # === GLOBALS ===
+logging.basicConfig(level=logging.DEBUG)
+
 create_user_data = [
     #("username", "password", "first_name", "last_name", "is_active", "scopes_list")
     ("admin@example.com", "password", "Admin", "Testuser", True, ['webapp', 'iwcadmin']),
