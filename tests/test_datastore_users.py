@@ -5,6 +5,7 @@ import logging
 import unittest
 
 from parameterized import parameterized
+from passlib.hash import pbkdf2_sha512
 
 from inovonics.cloud.oauth.datastore import OAuthUsers, OAuthUser
 from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
@@ -49,7 +50,7 @@ class TestCasesUserDatastore(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.logger = logging.getLogger(type(self).__name__)
         super().__init__(*args, **kwargs)
-        
+
     def setUp(self):
         self.logger.info("Setting up")
         # Setup the datastore for testing
@@ -58,7 +59,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         self.dstore.redis.flushdb()
         # Instantiate the datastore model class for the test
         self.db_users = OAuthUsers(self.dstore)
-    
+
     @parameterized.expand(create_user_data)
     def test_create_user(self, username, password, first_name, last_name, is_active, scopes_list):
         self.logger.info("Running test_create_user")
@@ -66,17 +67,32 @@ class TestCasesUserDatastore(unittest.TestCase):
         # Add the user via the datastore create method
         user_data = {
             'username': username,
-            'password_hash': password,
-            'first_name': first_name,
-            'last_name': last_name,
             'is_active': is_active,
             'scopes': scopes_list
         }
         user = OAuthUser(user_data)
+        user.update_password(password)
         self.db_users.create(user)
-        
+
         # Verify the correct data via direct calls to redis
-    
+        ## Check the user_id from the index
+        tmp_user_id = self.dstore.redis.get("user:{}".format(username)).decode('utf-8')
+        self.assertEqual(tmp_user_id, user.user_id)
+        ## Setup the key for the hash
+        tmp_key = "user{{{}}}".format(tmp_user_id)
+        ## Check the username
+        tmp_username = self.dstore.redis.hget(tmp_key, 'username').decode('utf-8')
+        self.assertEqual(tmp_username, username)
+        ## Check is_active
+        tmp_is_active = self.dstore.redis.hget(tmp_key, 'is_active').decode('utf-8')
+        self.assertEqual(tmp_is_active, is_active)
+        ## Check the scopes
+        tmp_scopes_list = self.dstore.redis.hget(tmp_key, 'scopes').decode('utf-8')
+        self.assertEqual(tmp_scopes_list, scopes_list)
+        ## Check the password
+        tmp_passhash = self.dstore.redis.hget(tmp_key, 'password_hash').decode('utf-8')
+        self.assertTrue(pbkdf2_sha512.verify(password, tmp_passhash)
+
     @parameterized.expand(update_user_data)
     def test_update_user(self, username, password, first_name, last_name, is_active, scopes_list):
         self.logger.info("Running test_update_user")
@@ -88,7 +104,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         # Update the user via the datastore
         
         # Verify the correct data via direct calls to redis
-    
+
     def tearDown(self):
         self.logger.info("Tearing down")
         # Flush the database again to be safe
