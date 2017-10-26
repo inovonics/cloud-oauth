@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 # === IMPORTS ===
+import json
 import logging
 import unittest
 
@@ -95,7 +96,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         ## Check the scopes
         tmp_scopes_list = self.dstore.redis.hget(tmp_key, 'scopes').decode('utf-8')
         self.logger.debug("tmp_scopes_list: %s", tmp_scopes_list)
-        self.assertEqual(tmp_scopes_list, scopes_list)
+        self.assertEqual(json.loads(tmp_scopes_list), scopes_list)
         ## Check the password
         tmp_passhash = self.dstore.redis.hget(tmp_key, 'password_hash').decode('utf-8')
         self.logger.debug("tmp_passhash: %s", tmp_passhash)
