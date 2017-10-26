@@ -130,7 +130,7 @@ class TestCasesDatastoreUsers(unittest.TestCase):
         self.assertTrue(tmp_user_in_user_ids)
 
     @parameterized.expand(update_user_data, testcase_func_name=custom_name_func)
-    def test_update_user(self, username, password, is_active, scopes, update_field, update_value):
+    def test_update_user(self, username, update_field, update_value):
         self.logger.info("Running test_update_user")
         # Create the user via direct calls to redis
         
