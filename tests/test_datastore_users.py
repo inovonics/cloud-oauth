@@ -91,7 +91,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         ## Check is_active
         tmp_is_active = self.dstore.redis.hget(tmp_key, 'is_active').decode('utf-8')
         self.logger.debug("tmp_is_active: %s", tmp_is_active)
-        self.assertEqual(tmp_is_active, is_active)
+        self.assertEqual(bool(tmp_is_active), bool(is_active))
         ## Check the scopes
         tmp_scopes_list = self.dstore.redis.hget(tmp_key, 'scopes').decode('utf-8')
         self.logger.debug("tmp_scopes_list: %s", tmp_scopes_list)
