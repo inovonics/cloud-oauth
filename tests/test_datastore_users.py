@@ -91,7 +91,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         self.assertEqual(tmp_scopes_list, scopes_list)
         ## Check the password
         tmp_passhash = self.dstore.redis.hget(tmp_key, 'password_hash').decode('utf-8')
-        self.assertTrue(pbkdf2_sha512.verify(password, tmp_passhash)
+        self.assertTrue(pbkdf2_sha512.verify(password, tmp_passhash))
 
     @parameterized.expand(update_user_data)
     def test_update_user(self, username, password, first_name, last_name, is_active, scopes_list):
