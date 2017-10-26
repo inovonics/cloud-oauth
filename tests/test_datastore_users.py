@@ -82,27 +82,40 @@ class TestCasesUserDatastore(unittest.TestCase):
         tmp_user_id = self.dstore.redis.get("oauth:user:{}".format(username)).decode('utf-8')
         self.logger.debug("tmp_user_id: %s", tmp_user_id)
         self.assertEqual(tmp_user_id, user.user_id)
+
         ## Setup the key for the hash
         tmp_key = "oauth:user{{{}}}".format(tmp_user_id)
         self.logger.debug("tmp_key: %s", tmp_key)
+
         ## Check the username
         tmp_username = self.dstore.redis.hget(tmp_key, 'username').decode('utf-8')
         self.logger.debug("tmp_username: %s", tmp_username)
         self.assertEqual(tmp_username, username)
+
         ## Check is_active
         tmp_is_active = self.dstore.redis.hget(tmp_key, 'is_active').decode('utf-8')
         self.logger.debug("tmp_is_active: %s", tmp_is_active)
         self.assertEqual(bool(tmp_is_active), bool(is_active))
+
         ## Check the scopes
         tmp_scopes_list = self.dstore.redis.hget(tmp_key, 'scopes').decode('utf-8')
         self.logger.debug("tmp_scopes_list: %s", tmp_scopes_list)
         self.assertEqual(json.loads(tmp_scopes_list), scopes_list)
+
         ## Check the password
         tmp_passhash = self.dstore.redis.hget(tmp_key, 'password_hash').decode('utf-8')
         self.logger.debug("tmp_passhash: %s", tmp_passhash)
         self.assertTrue(pbkdf2_sha512.verify(password, tmp_passhash))
+
         ## Check username is in usernames list
+        tmp_user_in_usernames = self.dstore.redis.sismember("oauth:usernames", username)
+        self.logger.debug("tmp_user_in_usernames: %s", tmp_user_in_usernames)
+        self.assertTrue(tmp_user_in_usernames)
+
         ## Check user_id is in user_ids list
+        tmp_user_in_user_ids = self.dstore.redis.sismember("oauth:user_ids", tmp_user_id)
+        self.logger.debug("tmp_user_in_user_ids: %s", tmp_user_in_user_ids)
+        self.assertTrue(tmp_user_in_user_ids)
 
     @parameterized.expand(update_user_data)
     def test_update_user(self, username, password, first_name, last_name, is_active, scopes_list):
