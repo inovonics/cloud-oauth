@@ -79,9 +79,11 @@ class TestCasesUserDatastore(unittest.TestCase):
         # Verify the correct data via direct calls to redis
         ## Check the user_id from the index
         tmp_user_id = self.dstore.redis.get("user:{}".format(username)).decode('utf-8')
+        self.logger.debug("tmp_user_id: %s", tmp_user_id)
         self.assertEqual(tmp_user_id, user.user_id)
         ## Setup the key for the hash
         tmp_key = "user{{{}}}".format(tmp_user_id)
+        self.logger.debug("tmp_key: %s", tmp_key)
         ## Check the username
         tmp_username = self.dstore.redis.hget(tmp_key, 'username')
         self.logger.debug("tmp_username: %s", tmp_username)
