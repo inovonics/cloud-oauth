@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 # === IMPORTS ===
+import os
+
 from inovonics.cloud.datastore import InoRedis
 
 # === GLOBALS ===

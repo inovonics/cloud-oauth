@@ -9,7 +9,7 @@ from parameterized import parameterized
 from inovonics.cloud.oauth.datastore import OAuthUsers, OAuthUser
 from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
 
-from .helpers import getDStore
+from helpers import getDStore
 
 # === GLOBALS ===
 create_user_data = [
