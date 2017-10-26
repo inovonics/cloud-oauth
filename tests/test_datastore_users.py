@@ -83,7 +83,9 @@ class TestCasesUserDatastore(unittest.TestCase):
         ## Setup the key for the hash
         tmp_key = "user{{{}}}".format(tmp_user_id)
         ## Check the username
-        tmp_username = self.dstore.redis.hget(tmp_key, 'username').decode('utf-8')
+        tmp_username = self.dstore.redis.hget(tmp_key, 'username')
+        self.logger.debug("tmp_username: %s", tmp_username)
+        tmp_username = tmp_username.decode('utf-8')
         self.assertEqual(tmp_username, username)
         ## Check is_active
         tmp_is_active = self.dstore.redis.hget(tmp_key, 'is_active').decode('utf-8')
