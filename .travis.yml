@@ -1,0 +1,26 @@
+language: python
+
+python:
+  - "3.5"
+  - "3.6"
+
+branches:
+  only:
+    - master
+
+services:
+  - redis-server
+
+install:
+  - pip install -r requirements.txt
+  - pip install -r test_requirements.txt
+
+script:
+  #- coverage run --source=inovonics -m unittest discover -s tests/
+  - /bin/true
+
+#after_success:
+#  - coveralls
+
+notifications:
+  email: false
