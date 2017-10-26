@@ -141,7 +141,7 @@ class TestCasesDatastoreUsers(unittest.TestCase):
         if update_field == "password":
             tmp_user.update_password(update_value)
         else:
-            tmp_user[update_field] = update_value
+            setattr(tmp_user, update_field, update_value)
         
         # Update the user via the datastore
         self.db_users.update(tmp_user)
