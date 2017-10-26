@@ -166,6 +166,8 @@ class TestCasesDatastoreUsers(unittest.TestCase):
                 pipe.hset(tmp_key, "password_hash", pbkdf2_sha512.hash(user[1]))
                 pipe.hset(tmp_key, "is_active", user[2])
                 pipe.hset(tmp_key, "scopes", json.dumps(user[3]))
+                # Setup the appropriate references
+                pipe.set("oauth:user:{}".format(user[0]), tmp_user_id)
                 # Load the username and user_id into the appropriate set
                 pipe.sadd("oauth:usernames", user[0])
                 pipe.sadd("oauth:user_ids", tmp_user_id)
