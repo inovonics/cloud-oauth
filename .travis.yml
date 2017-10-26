@@ -16,11 +16,10 @@ install:
   - pip install -r test_requirements.txt
 
 script:
-  #- coverage run --source=inovonics -m unittest discover -s tests/
-  - /bin/true
+  - coverage run --source=inovonics -m unittest discover -s tests/
 
-#after_success:
-#  - coveralls
+after_success:
+  - coveralls
 
 notifications:
   email: false
