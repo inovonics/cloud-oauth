@@ -78,11 +78,11 @@ class TestCasesUserDatastore(unittest.TestCase):
 
         # Verify the correct data via direct calls to redis
         ## Check the user_id from the index
-        tmp_user_id = self.dstore.redis.get("user:{}".format(username)).decode('utf-8')
+        tmp_user_id = self.dstore.redis.get("oauth:user:{}".format(username)).decode('utf-8')
         self.logger.debug("tmp_user_id: %s", tmp_user_id)
         self.assertEqual(tmp_user_id, user.user_id)
         ## Setup the key for the hash
-        tmp_key = "user{{{}}}".format(tmp_user_id)
+        tmp_key = "oauth:user{{{}}}".format(tmp_user_id)
         self.logger.debug("tmp_key: %s", tmp_key)
         ## Check the username
         tmp_username = self.dstore.redis.hget(tmp_key, 'username')
@@ -98,6 +98,8 @@ class TestCasesUserDatastore(unittest.TestCase):
         ## Check the password
         tmp_passhash = self.dstore.redis.hget(tmp_key, 'password_hash').decode('utf-8')
         self.assertTrue(pbkdf2_sha512.verify(password, tmp_passhash))
+        ## Check username is in usernames list
+        ## Check user_id is in user_ids list
 
     @parameterized.expand(update_user_data)
     def test_update_user(self, username, password, first_name, last_name, is_active, scopes_list):

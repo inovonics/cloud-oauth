@@ -19,7 +19,7 @@ class OAuthUsers(InoModelBase):
     def get_usernames(self, pipe=None):
         key_future = redpipe.Future()
         with redpipe.autoexec(pipe) as pipe:
-            byte_set = pipe.smembers('usernames')
+            byte_set = pipe.smembers('oauth:usernames')
 
             # After executing the pipe, callback to decode the results
             def cb():
@@ -35,7 +35,7 @@ class OAuthUsers(InoModelBase):
     def get_ids(self, pipe=None):
         key_future = redpipe.Future()
         with redpipe.autoexec(pipe) as pipe:
-            byte_set = pipe.smembers('user_ids')
+            byte_set = pipe.smembers('oauth:user_ids')
 
             # After executing the pipe, callback to decode the results
             def cb():
@@ -65,7 +65,7 @@ class OAuthUsers(InoModelBase):
     def get_user_id(self, username, pipe=None):
         decoded_user_id = redpipe.Future()
         with redpipe.autoexec(pipe=pipe) as pipe:
-            user_id = pipe.get('user:{}'.format(username))
+            user_id = pipe.get('oauth:user:{}'.format(username))
 
             def cb():
                 if not user_id:
@@ -144,15 +144,15 @@ class OAuthUsers(InoModelBase):
 
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
-            key = 'user{{{}}}'.format(oauth_user.user_id)
+            key = 'oauth:user{{{}}}'.format(oauth_user.user_id)
             pipe.delete(key)
-            pipe.srem('usernames', oauth_user.username)
-            pipe.delete('user:{}'.format(oauth_user.username))
-            pipe.srem('user_ids', oauth_user.user_id)
+            pipe.srem('oauth:usernames', oauth_user.username)
+            pipe.delete('oauth:user:{}'.format(oauth_user.username))
+            pipe.srem('oauth:user_ids', oauth_user.user_id)
 
     def _exists(self, user_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
-            exists = pipe.exists('oauth_user{{{}}}'.format(user_id))
+            exists = pipe.exists('oauth:user{{{}}}'.format(user_id))
         return exists
 
     def _upsert(self, oauth_user, pipe=None):
@@ -163,9 +163,9 @@ class OAuthUsers(InoModelBase):
             empty_fields = [field for field in oauth_user.custom_fields if len(str(getattr(oauth_user, field)).strip()) == 0]
             db_user.remove(empty_fields, pipe=pipe)
             # Add the user to the usernames set
-            pipe.sadd('usernames', oauth_user.username)
-            pipe.set('user:{}'.format(oauth_user.username), oauth_user.user_id)
-            pipe.sadd('user_ids', oauth_user.user_id)
+            pipe.sadd('oauth:usernames', oauth_user.username)
+            pipe.set('oauth:user:{}'.format(oauth_user.username), oauth_user.user_id)
+            pipe.sadd('oauth:user_ids', oauth_user.user_id)
 
     def _validate_internal_uniqueness(self, users):
         usernames = []
@@ -260,7 +260,7 @@ class OAuthUser:
         self.password_hash = pbkdf2_sha512.hash(new_password)
 
 class DBOAuthUser(redpipe.Struct):
-    keyspace = 'oatuh_user'
+    keyspace = 'oauth:user'
     key_name = 'user_id'
 
     fields = {
