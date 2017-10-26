@@ -19,6 +19,9 @@ def getDStore():
         dstore = InoRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
     return dstore
 
+def custom_name_func(testcase_func, param_num, param):
+    return "{}_{}".format(testcase_func.__name__, param_num)
+
 # === CLASSES ===
 
 # === MAIN ===

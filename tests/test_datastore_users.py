@@ -11,7 +11,7 @@ from passlib.hash import pbkdf2_sha512
 from inovonics.cloud.oauth.datastore import OAuthUsers, OAuthUser
 from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
 
-from helpers import getDStore
+from helpers import getDStore, custom_name_func
 
 # === GLOBALS ===
 logging.basicConfig(level=logging.DEBUG)
@@ -63,7 +63,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         # Instantiate the datastore model class for the test
         self.db_users = OAuthUsers(self.dstore)
 
-    @parameterized.expand(create_user_data)
+    @parameterized.expand(create_user_data, testcase_func_name=custom_name_func)
     def test_create_user(self, username, password, first_name, last_name, is_active, scopes_list):
         self.logger.info("Running test_create_user")
         # FIXME: Add the values from the call?
@@ -117,7 +117,7 @@ class TestCasesUserDatastore(unittest.TestCase):
         self.logger.debug("tmp_user_in_user_ids: %s", tmp_user_in_user_ids)
         self.assertTrue(tmp_user_in_user_ids)
 
-    @parameterized.expand(update_user_data)
+    @parameterized.expand(update_user_data, testcase_func_name=custom_name_func)
     def test_update_user(self, username, password, first_name, last_name, is_active, scopes_list):
         self.logger.info("Running test_update_user")
         # FIXME: Add the values from the call?
