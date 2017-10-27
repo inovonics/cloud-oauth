@@ -83,6 +83,9 @@ class InoOAuth2Provider(OAuth2Provider):
             #        this should be fixed in the get_default_scopes method.
             token.scopes = request.user.scopes
             otoken['scope'] = request.user.scopes
+            # Adding some values to the token before sending to the client
+            otoken['user_id'] = request.user.user_id
+            otoken['username'] = request.user.username
         else:
             token.user = ''
 
