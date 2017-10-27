@@ -27,15 +27,6 @@ class OAuthTokenHandler(View):
     def dispatch_request(self):
         dispatch_info = {}
         dispatch_info['version'] = __version__
-        
-        user = g.get('oauth_current_user', None)
-        logging.debug("user: %s", user)
-        logging.debug("g: %s", g)
-        
-        if user:
-            dispatch_info['user_id'] = user.user_id
-            dispatch_info['username'] = user.username
-        
         return dispatch_info
 
 class OAuthRevokeHandler(View):
