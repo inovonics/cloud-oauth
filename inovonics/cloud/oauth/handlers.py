@@ -3,7 +3,6 @@
 # === IMPORTS ===
 import logging
 
-from flask import g
 from flask.views import View
 
 from .__version__ import __version__
