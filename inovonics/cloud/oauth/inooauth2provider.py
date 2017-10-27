@@ -4,6 +4,8 @@
 import datetime
 import logging
 
+from flask import g
+
 from flask_oauthlib.provider import OAuth2Provider
 
 from inovonics.cloud.datastore import NotExistsException
@@ -31,7 +33,8 @@ class InoOAuth2Provider(OAuth2Provider):
         self.logger.debug("client_id: %s", client_id)
         clients = OAuthClients(self.dstore)
         client = clients.get_by_id(client_id)
-        # Client is an object
+        # Save the client to the request scratch area and return the client
+        g.oauth_current_client = client
         return client
 
     def _grantgetter(self, client_id, code):
@@ -50,6 +53,8 @@ class InoOAuth2Provider(OAuth2Provider):
             elif refresh_token:
                 token = tokens.get_by_refresh_token(refresh_token)
             self.logger.debug("Token Expiry: %s", token.expires)
+            # Save the token to the request scratch area and return the token
+            g.oauth_current_token = token
             return token
         except NotExistsException:
             self.logger.debug("Token does not exist.")
@@ -78,6 +83,9 @@ class InoOAuth2Provider(OAuth2Provider):
             #        this should be fixed in the get_default_scopes method.
             token.scopes = request.user.scopes
             otoken['scope'] = request.user.scopes
+            # Adding some values to the token before sending to the client
+            otoken['user_id'] = request.user.user_id
+            otoken['username'] = request.user.username
         else:
             token.user = ''
 
@@ -100,6 +108,8 @@ class InoOAuth2Provider(OAuth2Provider):
     
         # Password Check
         if user.check_password(password):
+            # Save the user to the request scratch area and return the user
+            g.oauth_current_user = user
             return user
         return None
 
