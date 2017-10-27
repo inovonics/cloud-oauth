@@ -3,7 +3,7 @@
 # === IMPORTS ===
 import logging
 
-from flask import g
+from flask import request
 from flask.views import View
 
 from .__version__ import __version__
@@ -28,9 +28,9 @@ class OAuthTokenHandler(View):
         dispatch_info = {}
         dispatch_info['version'] = __version__
         
-        user = g.get('oauth_current_user', None)
+        #user = g.get('oauth_current_user', None)
         
-        if user:
+        if request.user:
             dispatch_info['user_id'] = user.user_id
             dispatch_info['username'] = user.username
         
