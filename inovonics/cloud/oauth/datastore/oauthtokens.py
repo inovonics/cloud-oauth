@@ -21,26 +21,24 @@ class OAuthTokens(InoModelBase):
         token_obj = OAuthToken()
         with redpipe.autoexec(pipe)as pipe:
             db_obj = DBOAuthToken(token_id, pipe)
-
             def cb():
                 if db_obj.persisted:
                     token_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-
             pipe.on_execute(cb)
         return token_obj
 
     def get_by_access_token(self, access_token):
         # Look up the token by the access_token
         with redpipe.autoexec() as pipe:
-            key = pipe.get("oauth:token:access:{}".format(access_token))
+            oid = pipe.get("oauth:tokens:access:{}".format(access_token))
         return self.get_by_id(key.result.decode('utf-8'))
 
     def get_by_refresh_token(self, refresh_token):
         # Look up the token by the refresh_token
         with redpipe.autoexec() as pipe:
-            key = pipe.get("oauth:token:refresh:{}".format(refresh_token))
+            oid = pipe.get("oauth:tokens:refresh:{}".format(refresh_token))
         return self.get_by_id(key.result.decode('utf-8'))
 
     def create(self, tokens, expiry = 0):
@@ -52,7 +50,7 @@ class OAuthTokens(InoModelBase):
         with redpipe.autoexec() as pipe:
             all_exists = []
             for token in tokens:
-                all_exists.append(self._exists(token.token_id, pipe=pipe))
+                all_exists.append(self._exists(token.oid, pipe=pipe))
 
         # Return if any of the objects already exist
         for ex in all_exists:
@@ -66,7 +64,7 @@ class OAuthTokens(InoModelBase):
 
     def _exists(self, token_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
-            exists = pipe.exists('oauth:token{{{}}}'.format(token_id))
+            exists = pipe.exists('oauth:tokens{{{}}}'.format(token_id))
         return exists
 
     def _upsert(self, token, expiry = 0, pipe=None):
@@ -76,14 +74,14 @@ class OAuthTokens(InoModelBase):
             # Add lookup keys for access and refresh tokens
             if expiry <= 0:
                 # Set the secondary keys
-                pipe.set("oauth:token:access:{}".format(token.access_token), token.token_id)
-                pipe.set("oauth:token:refresh:{}".format(token.refresh_token), token.token_id)
+                pipe.set("oauth:tokens:access:{}".format(token.access_token), token.token_id)
+                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.token_id)
             else:
                 # Set the expiry on the struct
-                pipe.expire("oauth:token{{{}}}".format(token.token_id), int(expiry))
+                pipe.expire("oauth:tokens{{{}}}".format(token.token_id), int(expiry))
                 # Set the secondary keys
-                pipe.set("oauth:token:access:{}".format(token.access_token), token.token_id, ex=int(expiry))
-                pipe.set("oauth:token:refresh:{}".format(token.refresh_token), token.token_id, ex=int(expiry))
+                pipe.set("oauth:tokens:access:{}".format(token.access_token), token.token_id, ex=int(expiry))
+                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.token_id, ex=int(expiry))
 
 class OAuthToken(InoObjectBase):
     """
