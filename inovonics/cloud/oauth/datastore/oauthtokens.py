@@ -8,7 +8,7 @@ import logging
 import redpipe
 import uuid
 
-from inovonics.cloud.datastore import InoModelBase
+from inovonics.cloud.datastore import InoModelBase, InoObjectBase
 from inovonics.cloud.datastore import ExistsException, InvalidDataException, NotExistsException
 
 # === GLOBALS ===
