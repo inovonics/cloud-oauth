@@ -32,7 +32,7 @@ class InoOAuth2Provider(OAuth2Provider):
     def _clientgetter(self, client_id):
         self.logger.debug("client_id: %s", client_id)
         clients = OAuthClients(self.dstore)
-        client = clients.get_by_id(client_id)
+        client = clients.get_by_client_id(client_id)
         # Save the client to the request scratch area and return the client
         g.oauth_current_client = client
         return client
