@@ -85,45 +85,36 @@ class OAuthTokens(InoModelBase):
                 pipe.set("oauth:token:access:{}".format(token.access_token), token.token_id, ex=int(expiry))
                 pipe.set("oauth:token:refresh:{}".format(token.refresh_token), token.token_id, ex=int(expiry))
 
-class OAuthToken:
+class OAuthToken(InoObjectBase):
     """
     Class used to store and validate data for a Token entry.
     Passing data into the constructor will set all fields without returning any errors.
     Passing data into the .set_fields method will return a list of validation errors.
     """
-    
-    fields = ['token_id', 'client_id', 'user', 'token_type', 'access_token', 'refresh_token', 'scopes']
-    hidden_fields = []
+    fields = ['oid', 'client_id', 'user', 'token_type', 'access_token', 'refresh_token', 'expires', 'scopes']
 
-    # Visible attributes
-    token_id = ''
-    client_id = ''
-    user = ''
-    token_type = ''
-    access_token = ''
-    refresh_token = ''
     expires = datetime.datetime.utcnow()
     scopes = []
 
-    # Hidden attributes
-
     def __init__(self, dictionary=None):
-        self.logger = logging.getLogger(type(self).__name__)
-        self.token_id = str(uuid.uuid4())
+        super().__init__()
+        # Override non-string data types
+        setattr(self, 'expires', datetime.datetime.utcnow())
+        setattr(self, 'scopes', [])
         if dictionary:
             self.set_fields(dictionary)
 
-    def __repr__(self):
-        return "<OAuthToken {}>".format(self.token_id)
-
+    # NOTE: Overriding the get_dict, get_all_dict, and set_fields methods due to datetime handling.
     def get_dict(self):
         # Get all fields in the object as a dict (excluding hidden fields)
         dictionary = {}
-        for field in self.fields:
+        for field in self.fields + self.custom_fields:
+            self.logger.debug("{}: {}".format(field, dictionary[field]))
+            # Special handling of the datetime
+            # NOTE: This should be moved to the InoObjectBase class and be handled based on object type
+            if field == 'expires':
+                dictionary[field] = getattr(self, field).isoformat()
             dictionary[field] = getattr(self, field)
-        # Special handling of the datetime
-        dictionary['expires'] = self.expires.isoformat()
-        self.logger.debug("Expire Time: {}".format(dictionary['expires']))
         return dictionary
 
     def get_all_dict(self):
@@ -136,13 +127,14 @@ class OAuthToken:
     def set_fields(self, dictionary):
         if not dictionary:
             return self._validate_fields()
-        for field in self.fields + self.hidden_fields:
+        for field in self.fields + self.hidden_fields + self.custom_fields:
             if field in dictionary and dictionary[field]:
+                self.logger.debug("{}: {}".format(field, dictionary[field]))
+                # Special handling of the datetime
+                # NOTE: This should be moved to the InoObjectBase class and be handled based on object type
+                if field == 'expires':
+                    setattr(self, 'expires', dateutil.parser.parse(dictionary[field]))
                 setattr(self, field, dictionary[field])
-        # Special handling of the datetime
-        self.expires = dateutil.parser.parse(dictionary['expires'])
-        self.logger.debug("Expire Time: {}".format(self.expires))
-        self.logger.debug("UTCNow: {}".format(datetime.datetime.utcnow()))
         return self._validate_fields()
 
     def _validate_fields(self):
@@ -151,8 +143,8 @@ class OAuthToken:
         return errors
 
 class DBOAuthToken(redpipe.Struct):
-    keyspace = 'oauth:token'
-    key_name = 'token_id'
+    keyspace = 'oauth:tokens'
+    key_name = 'oid'
 
     fields = {
         "client_id": redpipe.TextField,
@@ -165,6 +157,6 @@ class DBOAuthToken(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthToken {}>".format(self['token_id'])
+        return "<DBOAuthToken {}>".format(self['oid'])
 
 # === MAIN ===
