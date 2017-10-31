@@ -5,7 +5,7 @@ import logging
 import redpipe
 import uuid
 
-from inovonics.cloud.datastore import InoModelBase
+from inovonics.cloud.datastore import InoModelBase, InoObjectBase
 from inovonics.cloud.datastore import ExistsException, InvalidDataException, NotExistsException
 
 # === GLOBALS ===
@@ -14,17 +14,22 @@ from inovonics.cloud.datastore import ExistsException, InvalidDataException, Not
 
 # === CLASSES ===
 class OAuthClients(InoModelBase):
-    def get_by_id(self, client_id, pipe=None):
-        client_obj = OAuthClient()
-        with redpipe.autoexec(pipe)as pipe:
-            db_obj = DBOAuthClient(client_id, pipe)
+    def get_by_client_id(self, client_id):
+        oid = None
+        with redpipe.autoexec() as pipe:
+            oid = pipe.get("oauth:client:client_id:{}".format(client_id))
+        client_obj = self.get_by_oid(oid)
+        return client_obj
 
+    def get_by_oid(self, client_id, pipe=None):
+        client_obj = OAuthClient()
+        with redpipe.autoexec(pipe) as pipe:
+            db_obj = DBOAuthClient(client_id, pipe)
             def cb():
                 if db_obj.persisted:
                     client_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-
             pipe.on_execute(cb)
         return client_obj
 
@@ -32,6 +37,9 @@ class OAuthClients(InoModelBase):
         # If clients is a singular object, make it a list of one
         if not hasattr(clients, '__iter__'):
             clients = [clients]
+
+        # Validate internal uniqueness
+        self._validate_internal_uniqueness(clients)
 
         # Validate Redis uniqueness
         with redpipe.autoexec() as pipe:
@@ -52,7 +60,10 @@ class OAuthClients(InoModelBase):
     def update(self, clients):
         # If clients is a singular object, make it a list of one
         if not hasattr(clients, '__iter__'):
-            users = [users]
+            clients = [clients]
+
+        # Validate internal uniqueness
+        self._validate_internal_uniqueness(clients)
 
         # Validate objects exist in Redis
         with redpipe.autoexec() as pipe:
@@ -68,81 +79,63 @@ class OAuthClients(InoModelBase):
         # Update all the entries
         with redpipe.autoexec() as pipe:
             for client in clients:
-                self._upsert_user(client, pipe=pipe)
+                self._upsert(client, pipe=pipe)
 
-    def remove(self, client_id):
+    def remove(self, client):
         with redpipe.autoexec() as pipe:
-            key = 'oauth:client{{{}}}'.format(client_id)
-            pipe.delete(key)
+            pipe.srem("oauth:client:client_ids", client.client_id)
+            pipe.srem("oauth:client:oids", client.oid)
+            pipe.delete("oauth:client:client_id:{}".format(client.client_id))
+            pipe.delete("oauth:client{{{}}}".format(client.oid))
 
     def _exists(self, client_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
-            exists = pipe.exists('oauth:client{{{}}}'.format(client_id))
+            exists = pipe.exists("oauth:client:client_id:{}".format(client_id))
         return exists
 
     def _upsert(self, client, pipe=None):
         with redpipe.autoexec(pipe) as pipe:
             # Create/update the user and save it to redis
             db_obj = DBOAuthClient(client.get_all_dict(), pipe)
+            # Remove empty custome fields from the object
+            for field in client.custom_fields:
+                if len(str(getattr(client, field)).strip()) == 0:
+                    db_obj.remove(field, pipe=pipe)
+            # Add the indexing data
+            pipe.set("oauth:client:client_id:{}".format(client.client_id), client.oid)
+            pipe.sadd("oauth:client:client_ids", client.client_id)
+            pipe.sadd("oauth:client:oids", client.oid)
 
-class OAuthClient:
+    def _validate_internal_uniqueness(self, clients):
+        client_ids = []
+        oids = []
+        for client in clients:
+            client_ids.append(client.client_id)
+            oids.append(client.oid)
+        # If the length of the set is different from the list, duplicates exist
+        if len(client_ids) != len(set(client_ids)) or len(oids) != len(set(oids)):
+            raise DuplicateException()
+
+class OAuthClient(InoObjectBase):
     """
     Class used to store and validate data for an OAuth Client entry.
     Passing data into the constructor will set all fields without returning any errors.
     Passing data into the .set_fields method will return a list of validation errors.
     """
-
-    fields = [
-        'client_id', 'name', 'client_secret', 'user', 'is_confidential', 'allowed_grant_types', 'redirect_uris',
-        'default_scopes', 'allowed_scopes'
-    ]
-    hidden_fields = []
-
-    # Visible attributes
-    client_id = ''
-    name = ''
-    client_secret = ''
-    user = ''
-    is_confidential = False
-    allowed_grant_types = []
-    redirect_uris = []
-    default_scopes = []
-    allowed_scopes = []
-
-    # Hidden attributes
+    # 'oid' is the object's unique identifier.  This prevents collisions with the id() method.
+    fields = ['oid', 'client_id', 'name', 'client_secret', 'user', 'is_confidential', 'allowed_grant_types',
+        'redirect_uris', 'default_scopes', 'allowed_scopes']
 
     def __init__(self, dictionary=None):
-        self.logger = logging.getLogger(type(self).__name__)
-        self.client_id = str(uuid.uuid4())
+        super().__init__()
+        # Override none-string data types
+        setattr(self, 'is_confidential', [])
+        setattr(self, 'allowed_grant_types', [])
+        setattr(self, 'redirect_uris', [])
+        setattr(self, 'default_scopes', [])
+        setattr(self, 'allowed_scopes', [])
         if dictionary:
             self.set_fields(dictionary)
-
-    def __repr__(self):
-        return "<OAuthClient {}>".format(self.client_id)
-
-    def get_dict(self):
-        # Get all fields in the object as a dict (excluding hidden fields)
-        dictionary = {}
-        for field in self.fields:
-            dictionary[field] = getattr(self, field)
-        return dictionary
-
-    def get_all_dict(self):
-        # Get all fields in the object as a dict
-        dictionary = {}
-        for field in self.fields:
-            dictionary[field] = getattr(self, field)
-        for field in self.hidden_fields:
-            dictionary[field] = getattr(self, field)
-        return dictionary
-
-    def set_fields(self, dictionary):
-        if not dictionary:
-            return self._validate_fields()
-        for field in self.fields + self.hidden_fields:
-            if field in dictionary and dictionary[field]:
-                setattr(self, field, dictionary[field])
-        return self._validate_fields()
 
     def _validate_fields(self):
         errors = []
@@ -169,9 +162,10 @@ class OAuthClient:
 
 class DBOAuthClient(redpipe.Struct):
     keyspace = 'oauth:client'
-    key_name = 'client_id'
+    key_name = 'oid'
     
     fields = {
+        "client_id": redpipe.TextField,
         "name": redpipe.TextField,
         "client_secret": redpipe.TextField,
         "user": redpipe.TextField,

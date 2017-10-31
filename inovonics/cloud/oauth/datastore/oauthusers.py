@@ -8,7 +8,7 @@ import uuid
 from passlib.hash import pbkdf2_sha512
 
 from inovonics.cloud.datastore import InoModelBase
-from inovonics.cloud.datastore import ExistsException, InvalidDataException, NotExistsException
+from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
 
 # === GLOBALS ===
 
@@ -144,11 +144,10 @@ class OAuthUsers(InoModelBase):
 
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
-            key = 'oauth:user{{{}}}'.format(oauth_user.user_id)
-            pipe.delete(key)
             pipe.srem('oauth:usernames', oauth_user.username)
-            pipe.delete('oauth:user:{}'.format(oauth_user.username))
             pipe.srem('oauth:user_ids', oauth_user.user_id)
+            pipe.delete('oauth:user:{}'.format(oauth_user.username))
+            pipe.delete('oauth:user{{{}}}'.format(oauth_user.user_id))
 
     def _exists(self, user_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
@@ -160,11 +159,12 @@ class OAuthUsers(InoModelBase):
             # Create/update the user and save it to redis
             db_user = DBOAuthUser(oauth_user.get_all_dict(), pipe=pipe)
             # Remove empty custom fields from the object
-            empty_fields = [field for field in oauth_user.custom_fields if len(str(getattr(oauth_user, field)).strip()) == 0]
-            db_user.remove(empty_fields, pipe=pipe)
+            for field in oauth_user.custom_fields:
+                if len(str(getattr(oauth_user, field)).strip()) == 0:
+                    db_obj.remove(field, pipe=pipe)
             # Add the user to the usernames set
-            pipe.sadd('oauth:usernames', oauth_user.username)
             pipe.set('oauth:user:{}'.format(oauth_user.username), oauth_user.user_id)
+            pipe.sadd('oauth:usernames', oauth_user.username)
             pipe.sadd('oauth:user_ids', oauth_user.user_id)
 
     def _validate_internal_uniqueness(self, users):
@@ -175,7 +175,7 @@ class OAuthUsers(InoModelBase):
             user_ids.append(user.user_id)
         # If the length of the set is different from the list, duplicates exist
         if len(usernames) != len(set(usernames)) or len(user_ids) != len(set(user_ids)):
-            raise ExistsException('Given iterable contains duplicates!')
+            raise DuplicateException()
 
 class OAuthUser:
     """
