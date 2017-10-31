@@ -15,18 +15,22 @@ from inovonics.cloud.datastore import DuplicateException, ExistsException, Inval
 # === CLASSES ===
 class OAuthClients(InoModelBase):
     def get_by_client_id(self, client_id):
+        self.logger.debug("client_id: %s", client_id)
         oid = None
         with redpipe.autoexec() as pipe:
             oid = pipe.get("oauth:clients:client_id:{}".format(client_id))
         client_obj = self.get_by_oid(oid)
         return client_obj
 
-    def get_by_oid(self, client_id, pipe=None):
+    def get_by_oid(self, oid, pipe=None):
+        self.logger.debug("oid: %s", oid)
         client_obj = OAuthClient()
         with redpipe.autoexec(pipe) as pipe:
-            db_obj = DBOAuthClient(client_id, pipe)
+            db_obj = DBOAuthClient(oid, pipe)
             def cb():
+                self.logger.debug("db_obj: %s", db_obj)
                 if db_obj.persisted:
+                    self.logger.debug("db_obj.persisted: True")
                     client_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
