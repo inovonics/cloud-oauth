@@ -9,7 +9,7 @@ import redpipe
 import uuid
 
 from inovonics.cloud.datastore import InoModelBase, InoObjectBase
-from inovonics.cloud.datastore import ExistsException, InvalidDataException, NotExistsException
+from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
 
 # === GLOBALS ===
 
