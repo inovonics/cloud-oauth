@@ -19,7 +19,7 @@ class OAuthUsers(InoModelBase):
     def get_usernames(self, pipe=None):
         key_future = redpipe.Future()
         with redpipe.autoexec(pipe) as pipe:
-            byte_set = pipe.smembers('oauth:usernames')
+            byte_set = pipe.smembers('oauth:users:usernames')
 
             # After executing the pipe, callback to decode the results
             def cb():
@@ -35,7 +35,7 @@ class OAuthUsers(InoModelBase):
     def get_ids(self, pipe=None):
         key_future = redpipe.Future()
         with redpipe.autoexec(pipe) as pipe:
-            byte_set = pipe.smembers('oauth:user_ids')
+            byte_set = pipe.smembers('oauth:users:oids')
 
             # After executing the pipe, callback to decode the results
             def cb():
@@ -65,11 +65,11 @@ class OAuthUsers(InoModelBase):
     def get_user_id(self, username, pipe=None):
         decoded_user_id = redpipe.Future()
         with redpipe.autoexec(pipe=pipe) as pipe:
-            user_id = pipe.get('oauth:user:{}'.format(username))
+            user_id = pipe.get('oauth:users:{}'.format(username))
 
             def cb():
                 if not user_id:
-                    raise ExistsException
+                    raise NotExistsException()
                 decoded_user_id.set(user_id.decode("utf-8"))
             
             pipe.on_execute(cb)
@@ -89,7 +89,7 @@ class OAuthUsers(InoModelBase):
             all_names = self.get_usernames(pipe)
             all_exists = []
             for user in users:
-                all_exists.append(self._exists(user.user_id, pipe=pipe))
+                all_exists.append(self._exists(user.oid, pipe=pipe))
 
         # Return if any of the objects already exist
         for ex in all_exists:
@@ -117,7 +117,7 @@ class OAuthUsers(InoModelBase):
         with redpipe.autoexec() as pipe:
             all_exists = []
             for user in users:
-                all_exists.append(self._exists(user.user_id, pipe=pipe))
+                all_exists.append(self._exists(user.oid, pipe=pipe))
         # Return if any of the objects don't already exist
         for ex in all_exists:
             if ex.IS(False):
@@ -133,7 +133,7 @@ class OAuthUsers(InoModelBase):
         # FIXME: Add password complexity checks here.
 
         # Try to get the user (will raise exception if not found)
-        user = self.get_user(user_id)
+        user = self.get_user(get_by_id)
 
         # Check the password and update it
         if user.check_password(old_password):
@@ -144,14 +144,14 @@ class OAuthUsers(InoModelBase):
 
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
-            pipe.srem('oauth:usernames', oauth_user.username)
-            pipe.srem('oauth:user_ids', oauth_user.user_id)
-            pipe.delete('oauth:user:{}'.format(oauth_user.username))
-            pipe.delete('oauth:user{{{}}}'.format(oauth_user.user_id))
+            pipe.srem('oauth:users:usernames', oauth_user.username)
+            pipe.srem('oauth:users:oids', oauth_user.oid)
+            pipe.delete('oauth:users:{}'.format(oauth_user.username))
+            pipe.delete('oauth:users{{{}}}'.format(oauth_user.oid))
 
     def _exists(self, user_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
-            exists = pipe.exists('oauth:user{{{}}}'.format(user_id))
+            exists = pipe.exists('oauth:users{{{}}}'.format(user_id))
         return exists
 
     def _upsert(self, oauth_user, pipe=None):
@@ -163,18 +163,18 @@ class OAuthUsers(InoModelBase):
                 if len(str(getattr(oauth_user, field)).strip()) == 0:
                     db_obj.remove(field, pipe=pipe)
             # Add the user to the usernames set
-            pipe.set('oauth:user:{}'.format(oauth_user.username), oauth_user.user_id)
-            pipe.sadd('oauth:usernames', oauth_user.username)
-            pipe.sadd('oauth:user_ids', oauth_user.user_id)
+            pipe.set('oauth:users:{}'.format(oauth_user.username), oauth_user.oid)
+            pipe.sadd('oauth:users:usernames', oauth_user.username)
+            pipe.sadd('oauth:users:oids', oauth_user.oid)
 
     def _validate_internal_uniqueness(self, users):
         usernames = []
-        user_ids = []
+        oids = []
         for user in users:
             usernames.append(user.username)
-            user_ids.append(user.user_id)
+            oids.append(user.oid)
         # If the length of the set is different from the list, duplicates exist
-        if len(usernames) != len(set(usernames)) or len(user_ids) != len(set(user_ids)):
+        if len(usernames) != len(set(usernames)) or len(oids) != len(set(oids)):
             raise DuplicateException()
 
 class OAuthUser(InoObjectBase):

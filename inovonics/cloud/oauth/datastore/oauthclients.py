@@ -17,7 +17,7 @@ class OAuthClients(InoModelBase):
     def get_by_client_id(self, client_id):
         oid = None
         with redpipe.autoexec() as pipe:
-            oid = pipe.get("oauth:client:client_id:{}".format(client_id))
+            oid = pipe.get("oauth:clients:client_id:{}".format(client_id))
         client_obj = self.get_by_oid(oid)
         return client_obj
 
@@ -83,14 +83,14 @@ class OAuthClients(InoModelBase):
 
     def remove(self, client):
         with redpipe.autoexec() as pipe:
-            pipe.srem("oauth:client:client_ids", client.client_id)
-            pipe.srem("oauth:client:oids", client.oid)
-            pipe.delete("oauth:client:client_id:{}".format(client.client_id))
-            pipe.delete("oauth:client{{{}}}".format(client.oid))
+            pipe.srem("oauth:clients:client_ids", client.client_id)
+            pipe.srem("oauth:clients:oids", client.oid)
+            pipe.delete("oauth:clients:client_id:{}".format(client.client_id))
+            pipe.delete("oauth:clients{{{}}}".format(client.oid))
 
     def _exists(self, client_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
-            exists = pipe.exists("oauth:client:client_id:{}".format(client_id))
+            exists = pipe.exists("oauth:clients:client_id:{}".format(client_id))
         return exists
 
     def _upsert(self, client, pipe=None):
@@ -102,9 +102,9 @@ class OAuthClients(InoModelBase):
                 if len(str(getattr(client, field)).strip()) == 0:
                     db_obj.remove(field, pipe=pipe)
             # Add the indexing data
-            pipe.set("oauth:client:client_id:{}".format(client.client_id), client.oid)
-            pipe.sadd("oauth:client:client_ids", client.client_id)
-            pipe.sadd("oauth:client:oids", client.oid)
+            pipe.set("oauth:clients:client_id:{}".format(client.client_id), client.oid)
+            pipe.sadd("oauth:clients:client_ids", client.client_id)
+            pipe.sadd("oauth:clients:oids", client.oid)
 
     def _validate_internal_uniqueness(self, clients):
         client_ids = []
@@ -161,7 +161,7 @@ class OAuthClient(InoObjectBase):
         return set(self.allowed_scopes).issuperset(set(in_scopes))
 
 class DBOAuthClient(redpipe.Struct):
-    keyspace = 'oauth:client'
+    keyspace = 'oauth:clients'
     key_name = 'oid'
     
     fields = {
