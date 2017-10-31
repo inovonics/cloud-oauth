@@ -220,7 +220,7 @@ class OAuthUser(InoObjectBase):
         self.password_hash = pbkdf2_sha512.hash(new_password)
 
 class DBOAuthUser(redpipe.Struct):
-    keyspace = 'oauth:user'
+    keyspace = 'oauth:users'
     key_name = 'oid'
 
     fields = {
