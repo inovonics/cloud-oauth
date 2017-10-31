@@ -128,8 +128,8 @@ class OAuthClient(InoObjectBase):
 
     def __init__(self, dictionary=None):
         super().__init__()
-        # Override none-string data types
-        setattr(self, 'is_confidential', [])
+        # Override non-string data types
+        setattr(self, 'is_confidential', False)
         setattr(self, 'allowed_grant_types', [])
         setattr(self, 'redirect_uris', [])
         setattr(self, 'default_scopes', [])
@@ -177,6 +177,6 @@ class DBOAuthClient(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthClient {}>".format(self['client_id'])
+        return "<DBOAuthClient {}>".format(self['oid'])
 
 # === MAIN ===

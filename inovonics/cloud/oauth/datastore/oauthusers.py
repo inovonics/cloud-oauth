@@ -7,7 +7,7 @@ import uuid
 
 from passlib.hash import pbkdf2_sha512
 
-from inovonics.cloud.datastore import InoModelBase
+from inovonics.cloud.datastore import InoModelBase, InoObjectBase
 from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
 
 # === GLOBALS ===
@@ -177,77 +177,37 @@ class OAuthUsers(InoModelBase):
         if len(usernames) != len(set(usernames)) or len(user_ids) != len(set(user_ids)):
             raise DuplicateException()
 
-class OAuthUser:
+class OAuthUser(InoObjectBase):
     """
         Class used to store and validate data for a User entry.
         Passing data into the constructor will set all fields without returning any errors.
         Passing data into the .set_fields method will return a list of validation errors.
     """
-    def __init__(self, dictionary=None):
-        self.logger = logging.getLogger(type(self).__name__)
-        
-        self.fields = ['user_id', 'username']
-        self.hidden_fields = ['password_hash', 'is_active', 'scopes']
-        self.custom_fields = []
-        # Visible attributes
-        self.user_id = str(uuid.uuid4())
-        self.username = ''
-        # Hidden attributes
-        self.password_hash = ''
-        self.is_active = True
-        self.scopes = []
+    fields = ['oid', 'username']
+    hidden_fields = ['password_hash', 'is_active', 'scopes']
 
+    def __init__(self, dictionary=None):
+        super().__init__()
+        # Override non-string data types
+        setattr(self, 'is_active', True)
+        setattr(self, 'scopes', [])
         if dictionary:
             self.set_fields(dictionary)
 
-    def __repr__(self):
-        return "<OAuthUser {}>".format(self.user_id)
-
-    def get_dict(self):
-        # Get all fields in the object as a dict (excluding hidden fields)
-        dictionary = {}
-        for field in self.fields + self.custom_fields:
-            dictionary[field] = getattr(self, field)
-        return dictionary
-
-    def get_all_dict(self):
-        # Get all fields in the object as a dict
-        dictionary = {}
-        for field in self.fields + self.custom_fields + self.hidden_fields:
-            dictionary[field] = getattr(self, field)
-        return dictionary
-
-    def set_fields(self, dictionary):
-        if not dictionary:
-            return self._validate_fields()
-        for field in dictionary:
-            if field in self.fields + self.custom_fields + self.hidden_fields:
-                setattr(self, field, dictionary[field])
-            elif field.startswith('custom_'):
-                self.custom_fields.append(field)
-                setattr(self, field, dictionary[field])
-
-        return self._validate_fields()
-
     def _validate_fields(self):
         errors = []
-
         # Validate custom field max length
         invalid = [field for field in self.custom_fields if len(str(getattr(self, field))) > 4096]
         if invalid:
             errors.append('custom fields must be 4096 chars or less')
-
-        # Ensure user_id is present
-        if not self.user_id.strip():
-            errors.append('user_id must be present')
-
+        # Ensure oid is present
+        if not self.oid.strip():
+            errors.append('oid must be present')
         # Ensure the username is present
         if not self.username.strip() or len(self.username) > 127:
             errors.append('username must be present and under 128 chars')
-
         # Convert is_active to boolean
         self.is_active = True if self.is_active else False
-
         # Ensure scopes is a list
         if not isinstance(self.scopes, list):
             errors.append('scopes must be of type list')
@@ -261,7 +221,7 @@ class OAuthUser:
 
 class DBOAuthUser(redpipe.Struct):
     keyspace = 'oauth:user'
-    key_name = 'user_id'
+    key_name = 'oid'
 
     fields = {
         "username": redpipe.TextField,
@@ -271,6 +231,6 @@ class DBOAuthUser(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthUser {}>".format(self['user_id'])
+        return "<DBOAuthUser {}>".format(self['oid'])
 
 # === MAIN ===
