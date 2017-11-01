@@ -107,12 +107,12 @@ class OAuthToken(InoObjectBase):
         # Get all fields in the object as a dict (excluding hidden fields)
         dictionary = {}
         for field in self.fields + self.custom_fields:
-            self.logger.debug("{}: {}".format(field, dictionary[field]))
             # Special handling of the datetime
             # NOTE: This should be moved to the InoObjectBase class and be handled based on object type
             if field == 'expires':
                 dictionary[field] = getattr(self, field).isoformat()
             dictionary[field] = getattr(self, field)
+            self.logger.debug("{}: {}".format(field, dictionary[field]))
         return dictionary
 
     def get_all_dict(self):
