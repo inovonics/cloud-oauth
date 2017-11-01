@@ -19,7 +19,7 @@ class OAuthClients(InoModelBase):
         oid = None
         with redpipe.autoexec() as pipe:
             oid = pipe.get("oauth:clients:client_id:{}".format(client_id))
-        client_obj = self.get_by_oid(oid)
+        client_obj = self.get_by_oid(oid).decode('utf-8')
         return client_obj
 
     def get_by_oid(self, oid, pipe=None):
