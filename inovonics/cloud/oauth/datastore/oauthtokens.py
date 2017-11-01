@@ -74,14 +74,14 @@ class OAuthTokens(InoModelBase):
             # Add lookup keys for access and refresh tokens
             if expiry <= 0:
                 # Set the secondary keys
-                pipe.set("oauth:tokens:access:{}".format(token.access_token), token.token_id)
-                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.token_id)
+                pipe.set("oauth:tokens:access:{}".format(token.access_token), token.oid)
+                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.oid)
             else:
                 # Set the expiry on the struct
-                pipe.expire("oauth:tokens{{{}}}".format(token.token_id), int(expiry))
+                pipe.expire("oauth:tokens{{{}}}".format(token.oid), int(expiry))
                 # Set the secondary keys
-                pipe.set("oauth:tokens:access:{}".format(token.access_token), token.token_id, ex=int(expiry))
-                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.token_id, ex=int(expiry))
+                pipe.set("oauth:tokens:access:{}".format(token.access_token), token.oid, ex=int(expiry))
+                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.oid, ex=int(expiry))
 
 class OAuthToken(InoObjectBase):
     """
