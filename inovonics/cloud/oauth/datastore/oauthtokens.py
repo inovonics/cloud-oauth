@@ -111,7 +111,8 @@ class OAuthToken(InoObjectBase):
             # NOTE: This should be moved to the InoObjectBase class and be handled based on object type
             if field == 'expires':
                 dictionary[field] = getattr(self, field).isoformat()
-            dictionary[field] = getattr(self, field)
+            else:
+                dictionary[field] = getattr(self, field)
             self.logger.debug("{}: ({}) {}".format(field, type(dictionary[field]), dictionary[field]))
         return dictionary
 
