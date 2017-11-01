@@ -132,8 +132,9 @@ class OAuthToken(InoObjectBase):
                 # Special handling of the datetime
                 # NOTE: This should be moved to the InoObjectBase class and be handled based on object type
                 if field == 'expires':
-                    setattr(self, 'expires', dateutil.parser.parse(dictionary[field]))
-                setattr(self, field, dictionary[field])
+                    setattr(self, field, dateutil.parser.parse(dictionary[field]))
+                else:
+                    setattr(self, field, dictionary[field])
         return self._validate_fields()
 
     def _validate_fields(self):
