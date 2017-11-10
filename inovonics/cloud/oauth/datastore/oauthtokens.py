@@ -33,12 +33,16 @@ class OAuthTokens(InoModelBase):
         # Look up the token by the access_token
         with redpipe.autoexec() as pipe:
             oid = pipe.get("oauth:tokens:access:{}".format(access_token))
+        if oid.IS(None):
+            raise NotExistsException()
         return self.get_by_id(oid.result.decode('utf-8'))
 
     def get_by_refresh_token(self, refresh_token):
         # Look up the token by the refresh_token
         with redpipe.autoexec() as pipe:
             oid = pipe.get("oauth:tokens:refresh:{}".format(refresh_token))
+        if oid.IS(None):
+            raise NotExistsException()
         return self.get_by_id(oid.result.decode('utf-8'))
 
     def create(self, tokens, expiry = 0):
