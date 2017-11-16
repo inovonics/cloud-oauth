@@ -52,10 +52,11 @@ class InoOAuth2Provider(OAuth2Provider):
                 token = tokens.get_by_access_token(access_token)
             elif refresh_token:
                 token = tokens.get_by_refresh_token(refresh_token)
-            self.logger.debug("Token Expiry: %s", token.expires)
-            # Save the token to the request scratch area and return the token
-            g.oauth_current_token = token
-            return token
+            if token is not None:
+                self.logger.debug("Token Expiry: %s", token.expires)
+                # Save the token to the request scratch area and return the token
+                g.oauth_current_token = token
+                return token
         except NotExistsException:
             self.logger.debug("Token does not exist.")
         return None
