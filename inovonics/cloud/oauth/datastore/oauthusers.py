@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+# Disabling some unhappy pylint things
+# pylint: disable=no-name-in-module,import-error,redefined-argument-from-local,no-self-use
+
 # === IMPORTS ===
-import logging
 import redpipe
-import uuid
 
 from passlib.hash import pbkdf2_sha512
 
@@ -18,61 +19,53 @@ from inovonics.cloud.datastore import DuplicateException, ExistsException, Inval
 class OAuthUsers(InoModelBase):
     def get_usernames(self, pipe=None):
         key_future = redpipe.Future()
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             byte_set = pipe.smembers('oauth:users:usernames')
-
             # After executing the pipe, callback to decode the results
-            def cb():
+            def callback():
                 key_list = []
                 for byte_value in byte_set:
                     key_list.append(byte_value.decode("utf-8"))
                 key_future.set(key_list)
                 # Execute the callback
-
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return key_future
 
     def get_ids(self, pipe=None):
         key_future = redpipe.Future()
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             byte_set = pipe.smembers('oauth:users:oids')
-
             # After executing the pipe, callback to decode the results
-            def cb():
+            def callback():
                 key_list = []
                 for byte_value in byte_set:
                     key_list.append(byte_value.decode("utf-8"))
                 key_future.set(key_list)
                 # Execute the callback
-
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return key_future
 
     def get_by_id(self, user_id, pipe=None):
         user_obj = OAuthUser()
-        with redpipe.autoexec(pipe)as pipe:
+        with redpipe.autoexec(pipe=pipe)as pipe:
             db_obj = DBOAuthUser(user_id, pipe=pipe)
-
-            def cb():
+            def callback():
                 if db_obj.persisted:
                     user_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return user_obj
 
     def get_user_id(self, username, pipe=None):
         decoded_user_id = redpipe.Future()
         with redpipe.autoexec(pipe=pipe) as pipe:
             user_id = pipe.get('oauth:users:{}'.format(username))
-
-            def cb():
+            def callback():
                 if not user_id:
                     raise NotExistsException()
                 decoded_user_id.set(user_id.decode("utf-8"))
-            
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return decoded_user_id
 
     def create(self, users):
@@ -84,7 +77,7 @@ class OAuthUsers(InoModelBase):
         self._validate_internal_uniqueness(users)
 
         # Validate Redis uniqueness
-        # FIXME: This should check user_id and username (which is more important) for uniqueness
+        # NOTE: This should check user_id and username (which is more important) for uniqueness
         with redpipe.autoexec() as pipe:
             all_names = self.get_usernames(pipe)
             all_exists = []
@@ -130,10 +123,10 @@ class OAuthUsers(InoModelBase):
 
     def update_password(self, user_id, old_password, new_password):
         # Validate given data
-        # FIXME: Add password complexity checks here.
+        # NOTE: Add password complexity checks here.
 
         # Try to get the user (will raise exception if not found)
-        user = self.get_user(get_by_id)
+        user = self.get_by_id(user_id)
 
         # Check the password and update it
         if user.check_password(old_password):
@@ -157,11 +150,11 @@ class OAuthUsers(InoModelBase):
     def _upsert(self, oauth_user, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the user and save it to redis
-            db_user = DBOAuthUser(oauth_user.get_all_dict(), pipe=pipe)
+            db_user = DBOAuthUser(oauth_user.get_dict(), pipe=pipe)
             # Remove empty custom fields from the object
-            for field in oauth_user.custom_fields:
-                if len(str(getattr(oauth_user, field)).strip()) == 0:
-                    db_obj.remove(field, pipe=pipe)
+            for field in oauth_user.fields_custom:
+                if not str(getattr(oauth_user, field)).strip():
+                    db_user.remove(field, pipe=pipe)
             # Add the user to the usernames set
             pipe.set('oauth:users:{}'.format(oauth_user.username), oauth_user.oid)
             pipe.sadd('oauth:users:usernames', oauth_user.username)
@@ -183,35 +176,49 @@ class OAuthUser(InoObjectBase):
         Passing data into the constructor will set all fields without returning any errors.
         Passing data into the .set_fields method will return a list of validation errors.
     """
-    fields = ['oid', 'username']
-    hidden_fields = ['password_hash', 'is_active', 'scopes']
+    # Disabling some silly pylint things
+    # pylint: disable=attribute-defined-outside-init
+    fields = [
+        {'name': 'oid', 'type': 'uuid'},
+        {'name': 'username', 'type': 'str'},
+        {'name': 'password_hash', 'type': 'str'},
+        {'name': 'is_active', 'type': 'bool'},
+        {'name': 'scopes', 'type': 'list'}
+    ]
 
     def __init__(self, dictionary=None):
         super().__init__()
-        # Override non-string data types
+        # Override default data
         setattr(self, 'is_active', True)
-        setattr(self, 'scopes', [])
+        # Add validation methods to list
+        self.validation_methods.append(self._validate_username)
+        self.validation_methods.append(self._validate_is_active)
+        self.validation_methods.append(self._validate_scopes)
         if dictionary:
             self.set_fields(dictionary)
 
-    def _validate_fields(self):
-        errors = []
-        # Validate custom field max length
-        invalid = [field for field in self.custom_fields if len(str(getattr(self, field))) > 4096]
-        if invalid:
-            errors.append('custom fields must be 4096 chars or less')
-        # Ensure oid is present
-        if not self.oid.strip():
-            errors.append('oid must be present')
-        # Ensure the username is present
-        if not self.username.strip() or len(self.username) > 127:
-            errors.append('username must be present and under 128 chars')
-        # Convert is_active to boolean
-        self.is_active = True if self.is_active else False
-        # Ensure scopes is a list
-        if not isinstance(self.scopes, list):
-            errors.append('scopes must be of type list')
-        return errors
+    def _validate_username(self):
+        # Ensure username is present, a string, and less than 128 chars
+        if not isinstance(getattr(self, 'username'), str):
+            return "{} not of type str but type {}, value {}".format(
+                'username', type(getattr(self, 'username')), getattr(self, 'username'))
+        if len(getattr(self, 'username')) > 127:
+            return "{} must be less than 128 chars".format('username')
+        return None
+
+    def _validate_is_active(self):
+        # Ensure is_active is present and a boolean
+        if not isinstance(getattr(self, 'is_active'), bool):
+            return "{} not of type bool but type {}, value {}".format(
+                'is_active', type(getattr(self, 'is_active')), getattr(self, 'is_active'))
+        return None
+
+    def _validate_scopes(self):
+        # Ensure scopes is present and a list
+        if not isinstance(getattr(self, 'scopes'), list):
+            return "{} not of type list but type {}, value {}".format(
+                'scopes', type(getattr(self, 'scopes')), getattr(self, 'scopes'))
+        return None
 
     def check_password(self, password):
         return pbkdf2_sha512.verify(password, self.password_hash)
@@ -231,6 +238,6 @@ class DBOAuthUser(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthUser {}>".format(self['oid'])
+        return "<DBOAuthUser: {}>".format(self['oid'])
 
 # === MAIN ===

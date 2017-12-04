@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+# Disabling some unhappy pylint things
+# pylint: disable=no-name-in-module,import-error,redefined-argument-from-local,no-self-use
+
 # === IMPORTS ===
-import logging
 import redpipe
-import uuid
 
 from inovonics.cloud.datastore import InoModelBase, InoObjectBase
-from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
+from inovonics.cloud.datastore import DuplicateException, ExistsException, NotExistsException
 
 # === GLOBALS ===
 
@@ -25,16 +26,16 @@ class OAuthClients(InoModelBase):
     def get_by_oid(self, oid, pipe=None):
         self.logger.debug("oid: %s", oid)
         client_obj = OAuthClient()
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             db_obj = DBOAuthClient(oid, pipe)
-            def cb():
+            def callback():
                 self.logger.debug("db_obj: %s", db_obj)
                 if db_obj.persisted:
                     self.logger.debug("db_obj.persisted: True")
                     client_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return client_obj
 
     def create(self, clients):
@@ -98,12 +99,12 @@ class OAuthClients(InoModelBase):
         return exists
 
     def _upsert(self, client, pipe=None):
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the user and save it to redis
-            db_obj = DBOAuthClient(client.get_all_dict(), pipe)
+            db_obj = DBOAuthClient(client.get_dict(), pipe)
             # Remove empty custome fields from the object
-            for field in client.custom_fields:
-                if len(str(getattr(client, field)).strip()) == 0:
+            for field in client.fields_custom:
+                if not str(getattr(client, field)).strip():
                     db_obj.remove(field, pipe=pipe)
             # Add the indexing data
             pipe.set("oauth:clients:client_id:{}".format(client.client_id), client.oid)
@@ -127,25 +128,19 @@ class OAuthClient(InoObjectBase):
     Passing data into the .set_fields method will return a list of validation errors.
     """
     # 'oid' is the object's unique identifier.  This prevents collisions with the id() method.
-    fields = ['oid', 'client_id', 'name', 'client_secret', 'user', 'is_confidential', 'allowed_grant_types',
-        'redirect_uris', 'default_scopes', 'allowed_scopes']
+    fields = [
+        {'name': 'oid', 'type': 'uuid'},
+        {'name': 'client_id', 'type': 'str'},
+        {'name': 'name', 'type': 'str'},
+        {'name': 'client_secret', 'type': 'str'},
+        {'name': 'user', 'type': 'str'},
+        {'name': 'is_confidential', 'type': 'bool'},
+        {'name': 'allowed_grant_types', 'type': 'list'},
+        {'name': 'redirect_uris', 'type': 'list'},
+        {'name': 'default_scopes', 'type': 'list'},
+        {'name': 'allowed_scopes', 'type': 'list'}
+    ]
 
-    def __init__(self, dictionary=None):
-        super().__init__()
-        # Override non-string data types
-        setattr(self, 'is_confidential', False)
-        setattr(self, 'allowed_grant_types', [])
-        setattr(self, 'redirect_uris', [])
-        setattr(self, 'default_scopes', [])
-        setattr(self, 'allowed_scopes', [])
-        if dictionary:
-            self.set_fields(dictionary)
-
-    def _validate_fields(self):
-        errors = []
-        # FIXME: Add validation here.
-        return errors
-    
     # Special properties for the OAuth handlers
     @property
     def client_type(self):
@@ -155,10 +150,10 @@ class OAuthClient(InoObjectBase):
 
     @property
     def default_redirect_uri(self):
-        if len(self.redirect_uris) > 0:
+        if self.redirect_uris:
             return self.redirect_uris[0]
         return '' # Bypassing redirects if none set
-    
+
     def validate_scopes(self, in_scopes):
         # OAuth method to test if the requested scopes are in the allowed list.
         # This is to override the _default_scopes list being used as the allowed list.
@@ -167,7 +162,7 @@ class OAuthClient(InoObjectBase):
 class DBOAuthClient(redpipe.Struct):
     keyspace = 'oauth:clients'
     key_name = 'oid'
-    
+
     fields = {
         "client_id": redpipe.TextField,
         "name": redpipe.TextField,
@@ -181,6 +176,6 @@ class DBOAuthClient(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthClient {}>".format(self['oid'])
+        return "<DBOAuthClient: {}>".format(self['oid'])
 
 # === MAIN ===

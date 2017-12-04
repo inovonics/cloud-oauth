@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Disabling some unhappy pylint things
+# pylint: disable=method-hidden,unused-argument,no-self-use,no-name-in-module,import-error
+
 # === IMPORTS ===
 import datetime
 import logging
@@ -10,9 +13,9 @@ from flask_oauthlib.provider import OAuth2Provider
 
 from inovonics.cloud.datastore import NotExistsException
 
-from .datastore import OAuthClients, OAuthClient
-from .datastore import OAuthTokens, OAuthToken
-from .datastore import OAuthUsers, OAuthUser
+from inovonics.cloud.oauth.datastore import OAuthClients
+from inovonics.cloud.oauth.datastore import OAuthTokens, OAuthToken
+from inovonics.cloud.oauth.datastore import OAuthUsers, OAuthUser
 
 # === GLOBALS ===
 
@@ -76,12 +79,12 @@ class InoOAuth2Provider(OAuth2Provider):
         token.scopes = otoken['scope']
         token.expires = expires
         token.client_id = request.client.client_id
-        if type(request.user) == OAuthUser:
+        if isinstance(request.user, OAuthUser):
             self.logger.debug("Setting user data in OAuth token")
             token.user = request.user.username
             # Overriding the scopes from the user for now.
-            # FIXME: The OAuth2RequestValidator should be subclassed and
-            #        this should be fixed in the get_default_scopes method.
+            # NOTE: The OAuth2RequestValidator should be subclassed and
+            #       this should be fixed in the get_default_scopes method.
             token.scopes = request.user.scopes
             otoken['scope'] = request.user.scopes
             # Adding some values to the token before sending to the client
@@ -100,13 +103,13 @@ class InoOAuth2Provider(OAuth2Provider):
     def _usergetter(self, username, password, *args, **kwargs):
         self.logger.debug("username: %s, password: %s", username, password)
         users = OAuthUsers(self.dstore)
-    
+
         try:
             user_id = users.get_user_id(username)
             user = users.get_by_id(user_id.result)
         except NotExistsException:
             return None
-    
+
         # Password Check
         if user.check_password(password):
             # Save the user to the request scratch area and return the user

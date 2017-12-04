@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 # === IMPORTS ===
-import logging
-
 from flask.views import View
 
 from .__version__ import __version__
@@ -10,7 +8,7 @@ from .__version__ import __version__
 # === GLOBALS ===
 
 # === FUNCTIONS ===
-def oauth_register_handlers(app, oauth, token_path, revoke_path = None):
+def oauth_register_handlers(app, oauth, token_path, revoke_path=None):
     # Register the token handler to the app.
     OAuthTokenHandler.decorators = [oauth.token_handler]
     app.add_url_rule(token_path, view_func=OAuthTokenHandler.as_view('oauth_token_handler'))
