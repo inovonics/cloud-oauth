@@ -127,19 +127,18 @@ class OAuthClient(InoObjectBase):
     Passing data into the .set_fields method will return a list of validation errors.
     """
     # 'oid' is the object's unique identifier.  This prevents collisions with the id() method.
-    fields = ['oid', 'client_id', 'name', 'client_secret', 'user', 'is_confidential', 'allowed_grant_types',
-        'redirect_uris', 'default_scopes', 'allowed_scopes']
-
-    def __init__(self, dictionary=None):
-        super().__init__()
-        # Override non-string data types
-        setattr(self, 'is_confidential', False)
-        setattr(self, 'allowed_grant_types', [])
-        setattr(self, 'redirect_uris', [])
-        setattr(self, 'default_scopes', [])
-        setattr(self, 'allowed_scopes', [])
-        if dictionary:
-            self.set_fields(dictionary)
+    fields = [
+        {'name': 'oid', 'type': 'uuid'},
+        {'name': 'client_id', 'type': 'str'},
+        {'name': 'name', 'type': 'str'},
+        {'name': 'client_secret', 'type': 'str'},
+        {'name': 'user', 'type': 'str'},
+        {'name': 'is_confidential', 'type': 'bool'},
+        {'name': 'allowed_grant_types', 'type': 'list'},
+        {'name': 'redirect_uris', 'type': 'list'},
+        {'name': 'default_scopes', 'type': 'list'},
+        {'name': 'allowed_scopes', 'type': 'list'}
+    ]
 
     def _validate_fields(self):
         errors = []
