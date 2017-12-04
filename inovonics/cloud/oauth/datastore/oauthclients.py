@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Disabling some unhappy pylint things
+# pylint: disable=no-name-in-module,import-error
+
 # === IMPORTS ===
 import logging
 import redpipe
@@ -25,7 +28,7 @@ class OAuthClients(InoModelBase):
     def get_by_oid(self, oid, pipe=None):
         self.logger.debug("oid: %s", oid)
         client_obj = OAuthClient()
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             db_obj = DBOAuthClient(oid, pipe)
             def cb():
                 self.logger.debug("db_obj: %s", db_obj)
@@ -98,7 +101,7 @@ class OAuthClients(InoModelBase):
         return exists
 
     def _upsert(self, client, pipe=None):
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the user and save it to redis
             db_obj = DBOAuthClient(client.get_dict(), pipe)
             # Remove empty custome fields from the object
@@ -140,11 +143,6 @@ class OAuthClient(InoObjectBase):
         {'name': 'allowed_scopes', 'type': 'list'}
     ]
 
-    def _validate_fields(self):
-        errors = []
-        # FIXME: Add validation here.
-        return errors
-    
     # Special properties for the OAuth handlers
     @property
     def client_type(self):
@@ -157,7 +155,7 @@ class OAuthClient(InoObjectBase):
         if len(self.redirect_uris) > 0:
             return self.redirect_uris[0]
         return '' # Bypassing redirects if none set
-    
+
     def validate_scopes(self, in_scopes):
         # OAuth method to test if the requested scopes are in the allowed list.
         # This is to override the _default_scopes list being used as the allowed list.
@@ -166,7 +164,7 @@ class OAuthClient(InoObjectBase):
 class DBOAuthClient(redpipe.Struct):
     keyspace = 'oauth:clients'
     key_name = 'oid'
-    
+
     fields = {
         "client_id": redpipe.TextField,
         "name": redpipe.TextField,
