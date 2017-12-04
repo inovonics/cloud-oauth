@@ -4,9 +4,7 @@
 # pylint: disable=no-name-in-module,import-error,redefined-argument-from-local,no-self-use
 
 # === IMPORTS ===
-import logging
 import redpipe
-import uuid
 
 from passlib.hash import pbkdf2_sha512
 
@@ -79,7 +77,7 @@ class OAuthUsers(InoModelBase):
         self._validate_internal_uniqueness(users)
 
         # Validate Redis uniqueness
-        # FIXME: This should check user_id and username (which is more important) for uniqueness
+        # NOTE: This should check user_id and username (which is more important) for uniqueness
         with redpipe.autoexec() as pipe:
             all_names = self.get_usernames(pipe)
             all_exists = []
@@ -128,7 +126,7 @@ class OAuthUsers(InoModelBase):
         # NOTE: Add password complexity checks here.
 
         # Try to get the user (will raise exception if not found)
-        user = self.get_user(get_by_id)
+        user = self.get_by_id(user_id)
 
         # Check the password and update it
         if user.check_password(old_password):
@@ -156,7 +154,7 @@ class OAuthUsers(InoModelBase):
             # Remove empty custom fields from the object
             for field in oauth_user.fields_custom:
                 if not str(getattr(oauth_user, field)).strip():
-                    db_obj.remove(field, pipe=pipe)
+                    db_user.remove(field, pipe=pipe)
             # Add the user to the usernames set
             pipe.set('oauth:users:{}'.format(oauth_user.username), oauth_user.oid)
             pipe.sadd('oauth:users:usernames', oauth_user.username)
@@ -178,6 +176,8 @@ class OAuthUser(InoObjectBase):
         Passing data into the constructor will set all fields without returning any errors.
         Passing data into the .set_fields method will return a list of validation errors.
     """
+    # Disabling some silly pylint things
+    # pylint: disable=attribute-defined-outside-init
     fields = [
         {'name': 'oid', 'type': 'uuid'},
         {'name': 'username', 'type': 'str'},
