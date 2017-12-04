@@ -159,7 +159,7 @@ class OAuthUsers(InoModelBase):
             # Create/update the user and save it to redis
             db_user = DBOAuthUser(oauth_user.get_dict(), pipe=pipe)
             # Remove empty custom fields from the object
-            for field in oauth_user.custom_fields:
+            for field in oauth_user.fields_custom:
                 if len(str(getattr(oauth_user, field)).strip()) == 0:
                     db_obj.remove(field, pipe=pipe)
             # Add the user to the usernames set

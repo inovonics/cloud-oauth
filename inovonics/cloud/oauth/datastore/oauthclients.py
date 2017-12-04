@@ -102,7 +102,7 @@ class OAuthClients(InoModelBase):
             # Create/update the user and save it to redis
             db_obj = DBOAuthClient(client.get_dict(), pipe)
             # Remove empty custome fields from the object
-            for field in client.custom_fields:
+            for field in client.fields_custom:
                 if len(str(getattr(client, field)).strip()) == 0:
                     db_obj.remove(field, pipe=pipe)
             # Add the indexing data
