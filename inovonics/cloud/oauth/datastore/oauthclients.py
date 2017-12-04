@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
 # Disabling some unhappy pylint things
-# pylint: disable=no-name-in-module,import-error,redefine-argument-from-local,no-self-use
+# pylint: disable=no-name-in-module,import-error,redefined-argument-from-local,no-self-use
 
 # === IMPORTS ===
-import logging
 import redpipe
-import uuid
 
 from inovonics.cloud.datastore import InoModelBase, InoObjectBase
-from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
+from inovonics.cloud.datastore import DuplicateException, ExistsException, NotExistsException
 
 # === GLOBALS ===
 

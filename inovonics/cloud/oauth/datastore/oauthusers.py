@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Disabling some unhappy pylint things
-# pylint: disable=no-name-in-module,import-error,redefine-argument-from-local,no-self-use
+# pylint: disable=no-name-in-module,import-error,redefined-argument-from-local,no-self-use
 
 # === IMPORTS ===
 import logging

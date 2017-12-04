@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 
 # Disabling some unhappy pylint things
-# pylint: disable=no-name-in-module,import-error,redefine-argument-from-local,no-self-use
+# pylint: disable=no-name-in-module,import-error,redefined-argument-from-local,no-self-use
 
 # === IMPORTS ===
-import datetime
-import dateutil.parser
-import json
-import logging
 import redpipe
-import uuid
 
 from inovonics.cloud.datastore import InoModelBase, InoObjectBase
 from inovonics.cloud.datastore import DuplicateException, ExistsException, InvalidDataException, NotExistsException
@@ -48,7 +43,7 @@ class OAuthTokens(InoModelBase):
             raise NotExistsException()
         return self.get_by_id(oid.result.decode('utf-8'))
 
-    def create(self, tokens, expiry = 0):
+    def create(self, tokens, expiry=0):
         # If tokens is a singular object, make it a list of one
         if not hasattr(tokens, '__iter__'):
             tokens = [tokens]
@@ -74,10 +69,14 @@ class OAuthTokens(InoModelBase):
             exists = pipe.exists('oauth:tokens{{{}}}'.format(token_id))
         return exists
 
-    def _upsert(self, token, expiry = 0, pipe=None):
+    def _upsert(self, token, expiry=0, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the token and save it to redis
             db_token = DBOAuthToken(token.get_dict(), pipe)
+            # Remove empty custome fields from the object
+            for field in token.fields_custom:
+                if not str(getattr(token, field)).strip():
+                    db_token.remove(field, pipe=pipe)
             # Add lookup keys for access and refresh tokens
             if expiry <= 0:
                 # Set the secondary keys
@@ -96,6 +95,8 @@ class OAuthToken(InoObjectBase):
     Passing data into the constructor will set all fields without returning any errors.
     Passing data into the .set_fields method will return a list of validation errors.
     """
+    # Disabling somethings until more validation can be added
+    # pylint: disable=too-few-public-methods
     fields = [
         {'name': 'oid', 'type': 'uuid'},
         {'name': 'client_id', 'type': 'str'},
