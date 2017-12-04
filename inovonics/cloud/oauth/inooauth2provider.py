@@ -88,7 +88,7 @@ class InoOAuth2Provider(OAuth2Provider):
             token.scopes = request.user.scopes
             otoken['scope'] = request.user.scopes
             # Adding some values to the token before sending to the client
-            otoken['user_id'] = request.user.oid
+            otoken['user_id'] = str(request.user.oid)
             otoken['username'] = request.user.username
         else:
             token.user = ''
