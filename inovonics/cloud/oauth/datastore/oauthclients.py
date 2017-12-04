@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Disabling some unhappy pylint things
-# pylint: disable=no-name-in-module,import-error
+# pylint: disable=no-name-in-module,import-error,redefine-argument-from-local,no-self-use
 
 # === IMPORTS ===
 import logging
@@ -30,14 +30,14 @@ class OAuthClients(InoModelBase):
         client_obj = OAuthClient()
         with redpipe.autoexec(pipe=pipe) as pipe:
             db_obj = DBOAuthClient(oid, pipe)
-            def cb():
+            def callback():
                 self.logger.debug("db_obj: %s", db_obj)
                 if db_obj.persisted:
                     self.logger.debug("db_obj.persisted: True")
                     client_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return client_obj
 
     def create(self, clients):
@@ -106,7 +106,7 @@ class OAuthClients(InoModelBase):
             db_obj = DBOAuthClient(client.get_dict(), pipe)
             # Remove empty custome fields from the object
             for field in client.fields_custom:
-                if len(str(getattr(client, field)).strip()) == 0:
+                if not str(getattr(client, field)).strip():
                     db_obj.remove(field, pipe=pipe)
             # Add the indexing data
             pipe.set("oauth:clients:client_id:{}".format(client.client_id), client.oid)
@@ -152,7 +152,7 @@ class OAuthClient(InoObjectBase):
 
     @property
     def default_redirect_uri(self):
-        if len(self.redirect_uris) > 0:
+        if self.redirect_uris:
             return self.redirect_uris[0]
         return '' # Bypassing redirects if none set
 

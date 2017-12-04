@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Disabling some unhappy pylint things
+# pylint: disable=no-name-in-module,import-error,redefine-argument-from-local,no-self-use
+
 # === IMPORTS ===
 import logging
 import redpipe
@@ -18,61 +21,53 @@ from inovonics.cloud.datastore import DuplicateException, ExistsException, Inval
 class OAuthUsers(InoModelBase):
     def get_usernames(self, pipe=None):
         key_future = redpipe.Future()
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             byte_set = pipe.smembers('oauth:users:usernames')
-
             # After executing the pipe, callback to decode the results
-            def cb():
+            def callback():
                 key_list = []
                 for byte_value in byte_set:
                     key_list.append(byte_value.decode("utf-8"))
                 key_future.set(key_list)
                 # Execute the callback
-
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return key_future
 
     def get_ids(self, pipe=None):
         key_future = redpipe.Future()
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             byte_set = pipe.smembers('oauth:users:oids')
-
             # After executing the pipe, callback to decode the results
-            def cb():
+            def callback():
                 key_list = []
                 for byte_value in byte_set:
                     key_list.append(byte_value.decode("utf-8"))
                 key_future.set(key_list)
                 # Execute the callback
-
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return key_future
 
     def get_by_id(self, user_id, pipe=None):
         user_obj = OAuthUser()
-        with redpipe.autoexec(pipe)as pipe:
+        with redpipe.autoexec(pipe=pipe)as pipe:
             db_obj = DBOAuthUser(user_id, pipe=pipe)
-
-            def cb():
+            def callback():
                 if db_obj.persisted:
                     user_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return user_obj
 
     def get_user_id(self, username, pipe=None):
         decoded_user_id = redpipe.Future()
         with redpipe.autoexec(pipe=pipe) as pipe:
             user_id = pipe.get('oauth:users:{}'.format(username))
-
-            def cb():
+            def callback():
                 if not user_id:
                     raise NotExistsException()
                 decoded_user_id.set(user_id.decode("utf-8"))
-            
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return decoded_user_id
 
     def create(self, users):
@@ -130,7 +125,7 @@ class OAuthUsers(InoModelBase):
 
     def update_password(self, user_id, old_password, new_password):
         # Validate given data
-        # FIXME: Add password complexity checks here.
+        # NOTE: Add password complexity checks here.
 
         # Try to get the user (will raise exception if not found)
         user = self.get_user(get_by_id)
@@ -160,7 +155,7 @@ class OAuthUsers(InoModelBase):
             db_user = DBOAuthUser(oauth_user.get_dict(), pipe=pipe)
             # Remove empty custom fields from the object
             for field in oauth_user.fields_custom:
-                if len(str(getattr(oauth_user, field)).strip()) == 0:
+                if not str(getattr(oauth_user, field)).strip():
                     db_obj.remove(field, pipe=pipe)
             # Add the user to the usernames set
             pipe.set('oauth:users:{}'.format(oauth_user.username), oauth_user.oid)

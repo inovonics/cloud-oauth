@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Disabling some unhappy pylint things
+# pylint: disable=no-name-in-module,import-error,redefine-argument-from-local,no-self-use
+
 # === IMPORTS ===
 import datetime
 import dateutil.parser
@@ -19,14 +22,14 @@ from inovonics.cloud.datastore import DuplicateException, ExistsException, Inval
 class OAuthTokens(InoModelBase):
     def get_by_id(self, token_id, pipe=None):
         token_obj = OAuthToken()
-        with redpipe.autoexec(pipe)as pipe:
+        with redpipe.autoexec(pipe=pipe)as pipe:
             db_obj = DBOAuthToken(token_id, pipe)
-            def cb():
+            def callback():
                 if db_obj.persisted:
                     token_obj.set_fields((dict(db_obj)))
                 else:
                     raise NotExistsException()
-            pipe.on_execute(cb)
+            pipe.on_execute(callback)
         return token_obj
 
     def get_by_access_token(self, access_token):
@@ -72,7 +75,7 @@ class OAuthTokens(InoModelBase):
         return exists
 
     def _upsert(self, token, expiry = 0, pipe=None):
-        with redpipe.autoexec(pipe) as pipe:
+        with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the token and save it to redis
             db_token = DBOAuthToken(token.get_dict(), pipe)
             # Add lookup keys for access and refresh tokens
@@ -103,11 +106,6 @@ class OAuthToken(InoObjectBase):
         {'name': 'expires', 'type': 'datetime'},
         {'name': 'scopes', 'type': 'list'}
     ]
-
-    def _validate_fields(self):
-        errors = []
-        # FIXME: Add validation here.
-        return errors
 
 class DBOAuthToken(redpipe.Struct):
     keyspace = 'oauth:tokens'
