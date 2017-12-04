@@ -180,6 +180,6 @@ class DBOAuthClient(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthClient {}>".format(self['oid'])
+        return "<DBOAuthClient: {}>".format(self['oid'])
 
 # === MAIN ===
