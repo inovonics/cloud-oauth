@@ -100,7 +100,7 @@ class OAuthClients(InoModelBase):
     def _upsert(self, client, pipe=None):
         with redpipe.autoexec(pipe) as pipe:
             # Create/update the user and save it to redis
-            db_obj = DBOAuthClient(client.get_all_dict(), pipe)
+            db_obj = DBOAuthClient(client.get_dict(), pipe)
             # Remove empty custome fields from the object
             for field in client.custom_fields:
                 if len(str(getattr(client, field)).strip()) == 0:

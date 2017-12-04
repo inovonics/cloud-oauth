@@ -74,7 +74,7 @@ class OAuthTokens(InoModelBase):
     def _upsert(self, token, expiry = 0, pipe=None):
         with redpipe.autoexec(pipe) as pipe:
             # Create/update the token and save it to redis
-            db_token = DBOAuthToken(token.get_all_dict(), pipe)
+            db_token = DBOAuthToken(token.get_dict(), pipe)
             # Add lookup keys for access and refresh tokens
             if expiry <= 0:
                 # Set the secondary keys
