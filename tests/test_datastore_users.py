@@ -93,7 +93,7 @@ class TestCasesDatastoreUsers(unittest.TestCase):
         ## Check the user_id from the index
         tmp_user_id = self.dstore.redis.get("oauth:users:{}".format(username)).decode('utf-8')
         self.logger.debug("tmp_user_id: %s", tmp_user_id)
-        self.assertEqual(tmp_user_id, user.oid)
+        self.assertEqual(uuid.UUID(tmp_user_id), user.oid)
 
         ## Setup the key for the hash
         tmp_key = "oauth:users{{{}}}".format(tmp_user_id)
