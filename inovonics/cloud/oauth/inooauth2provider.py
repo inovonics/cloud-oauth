@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Disabling some unhappy pylint things
-# pylint: disable=method-hidden,unused-argument,no-self-use
+# pylint: disable=method-hidden,unused-argument,no-self-use,no-name-in-module,import-error
 
 # === IMPORTS ===
 import datetime
@@ -13,7 +13,7 @@ from flask_oauthlib.provider import OAuth2Provider
 
 from inovonics.cloud.datastore import NotExistsException
 
-from inovonics.cloud.oauth.datastore import OAuthClients, OAuthClient
+from inovonics.cloud.oauth.datastore import OAuthClients
 from inovonics.cloud.oauth.datastore import OAuthTokens, OAuthToken
 from inovonics.cloud.oauth.datastore import OAuthUsers, OAuthUser
 
