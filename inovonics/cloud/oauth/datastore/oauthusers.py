@@ -183,35 +183,47 @@ class OAuthUser(InoObjectBase):
         Passing data into the constructor will set all fields without returning any errors.
         Passing data into the .set_fields method will return a list of validation errors.
     """
-    fields = ['oid', 'username']
-    hidden_fields = ['password_hash', 'is_active', 'scopes']
+    fields = [
+        {'name': 'oid', 'type': 'uuid'},
+        {'name': 'username', 'type': 'str'},
+        {'name': 'password_hash', 'type': 'str'},
+        {'name': 'is_active', 'type': 'bool'},
+        {'name': 'scopes', 'type': 'list'}
+    ]
 
     def __init__(self, dictionary=None):
         super().__init__()
-        # Override non-string data types
+        # Override default data
         setattr(self, 'is_active', True)
-        setattr(self, 'scopes', [])
+        # Add validation methods to list
+        self.validation_methods.append(self._validate_username)
+        self.validation_methods.append(self._validate_is_active)
+        self.validation_methods.append(self._validate_scopes)
         if dictionary:
             self.set_fields(dictionary)
 
-    def _validate_fields(self):
-        errors = []
-        # Validate custom field max length
-        invalid = [field for field in self.custom_fields if len(str(getattr(self, field))) > 4096]
-        if invalid:
-            errors.append('custom fields must be 4096 chars or less')
-        # Ensure oid is present
-        if not self.oid.strip():
-            errors.append('oid must be present')
-        # Ensure the username is present
-        if not self.username.strip() or len(self.username) > 127:
-            errors.append('username must be present and under 128 chars')
-        # Convert is_active to boolean
-        self.is_active = True if self.is_active else False
-        # Ensure scopes is a list
-        if not isinstance(self.scopes, list):
-            errors.append('scopes must be of type list')
-        return errors
+    def _validate_username(self):
+        # Ensure username is present, a string, and less than 128 chars
+        if not isinstance(getattr(self, 'username'), str):
+            return "{} not of type str but type {}, value {}".format(
+                'username', type(getattr(self, 'username')), getattr(self, 'username'))
+        if len(getattr(self, 'username')) > 127:
+            return "{} must be less than 128 chars".format('username')
+        return None
+
+    def _validate_is_active(self):
+        # Ensure is_active is present and a boolean
+        if not isinstance(getattr(self, 'is_active'), bool):
+            return "{} not of type bool but type {}, value {}".format(
+                'is_active', type(getattr(self, 'is_active')), getattr(self, 'is_active'))
+        return None
+
+    def _validate_scopes(self):
+        # Ensure scopes is present and a list
+        if not isinstance(getattr(self, 'scopes'), list):
+            return "{} not of type list but type {}, value {}".format(
+                'scopes', type(getattr(self, 'scopes')), getattr(self, 'scopes'))
+        return None
 
     def check_password(self, password):
         return pbkdf2_sha512.verify(password, self.password_hash)
@@ -231,6 +243,6 @@ class DBOAuthUser(redpipe.Struct):
     }
 
     def __repr__(self):
-        return "<DBOAuthUser {}>".format(self['oid'])
+        return "<DBOAuthUser: {}>".format(self['oid'])
 
 # === MAIN ===
