@@ -5,6 +5,7 @@
 
 # === IMPORTS ===
 import redpipe
+import re
 
 from passlib.hash import pbkdf2_sha512
 
@@ -199,32 +200,33 @@ class OAuthUser(InoObjectBase):
 
     def _validate_username(self):
         # Ensure username is present, a string, and less than 128 chars
-        if not isinstance(getattr(self, 'username'), str):
-            return "{} not of type str but type {}, value {}".format(
-                'username', type(getattr(self, 'username')), getattr(self, 'username'))
-        if len(getattr(self, 'username')) > 127:
-            return "{} must be less than 128 chars".format('username')
-        return None
+        # Check if it is email format
+        return self._validate_email('username', max=127, required=True)
 
     def _validate_is_active(self):
         # Ensure is_active is present and a boolean
-        if not isinstance(getattr(self, 'is_active'), bool):
-            return "{} not of type bool but type {}, value {}".format(
-                'is_active', type(getattr(self, 'is_active')), getattr(self, 'is_active'))
-        return None
+       return self._validate_bool('is_active', required=True)
 
     def _validate_scopes(self):
         # Ensure scopes is present and a list
-        if not isinstance(getattr(self, 'scopes'), list):
-            return "{} not of type list but type {}, value {}".format(
-                'scopes', type(getattr(self, 'scopes')), getattr(self, 'scopes'))
-        return None
+        return self._validate_list('scopes', min=1, required=True)
 
     def check_password(self, password):
         return pbkdf2_sha512.verify(password, self.password_hash)
 
     def update_password(self, new_password):
+        self._validate_password(new_password)
         self.password_hash = pbkdf2_sha512.hash(new_password)
+
+    def _validate_password(self, password):
+        # Password must be at least 8 characters long and max 127 characters.
+        # and must have one uppercase, one lowercase, one digit
+        if len(password) > 127:
+            raise InvalidDataException(
+                "Password must be at least 8 chars long, maximum 127 chars, with one upper case, one lower case and one digit")
+        if re.match('^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{8,}$', password) is None:
+            raise InvalidDataException(
+                "Password must be at least 8 characters long, with one upper case, one lower case and one digit")
 
 class DBOAuthUser(redpipe.Struct):
     keyspace = 'oauth:users'
