@@ -6,6 +6,7 @@
 # === IMPORTS ===
 import redpipe
 import re
+import datetime
 
 from passlib.hash import pbkdf2_sha512
 
@@ -69,6 +70,18 @@ class OAuthUsers(InoModelBase):
             pipe.on_execute(callback)
         return decoded_user_id
 
+    def valid_registration_token(self, user_id, pipe=None):
+        valid_token = redpipe.Future()
+        valid_token.set(False)
+
+        with redpipe.autoexec(pipe=pipe) as pipe:
+            usertoken = pipe.get('oauth:usertokens:{}'.format(user_id))
+            def callback():
+                if usertoken: valid_token.set(True)
+            pipe.on_execute(callback)
+
+        return valid_token
+
     def create(self, users):
         # If users is a singular object, make it a list of one
         if not hasattr(users, '__iter__'):
@@ -98,6 +111,7 @@ class OAuthUsers(InoModelBase):
         with redpipe.autoexec() as pipe:
             for user in users:
                 self._upsert(user, pipe=pipe)
+                self._create_registration_token(user, pipe=pipe)
 
     def update(self, users):
         # If users is a singular object, make it a list of one
@@ -134,7 +148,22 @@ class OAuthUsers(InoModelBase):
             user.update_password(new_password)
             self._upsert(user)
         else:
-            raise InvalidDataException
+            raise InvalidDataException("Error in setting password.")
+
+    def set_password(self, user_id, password):
+        # Set password is allowed only when password is null
+        # NOTE: Add password complexity checks here.
+
+        # Try to get the user (will raise exception if not found)
+        user = self.get_by_id(user_id)
+
+        # Check the password and update it
+        if not user.password_hash:
+            user.update_password(password)
+            self._upsert(user)
+            self._remove_registration_token(user)
+        else:
+            raise InvalidDataException("Error in setting password.")
 
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
@@ -142,6 +171,7 @@ class OAuthUsers(InoModelBase):
             pipe.srem('oauth:users:oids', oauth_user.oid)
             pipe.delete('oauth:users:{}'.format(oauth_user.username))
             pipe.delete('oauth:users{{{}}}'.format(oauth_user.oid))
+            self._remove_registration_token(oauth_user, pipe)
 
     def _exists(self, user_id, pipe=None):
         with redpipe.autoexec(pipe=pipe) as pipe:
@@ -160,6 +190,18 @@ class OAuthUsers(InoModelBase):
             pipe.set('oauth:users:{}'.format(oauth_user.username), oauth_user.oid)
             pipe.sadd('oauth:users:usernames', oauth_user.username)
             pipe.sadd('oauth:users:oids', oauth_user.oid)
+
+    def _create_registration_token(self, oauth_user, pipe=None):
+        with redpipe.autoexec(pipe=pipe) as pipe:
+            key = 'oauth:usertokens:{}'.format(oauth_user.oid)
+            pipe.set(key, oauth_user.oid)
+            ttl = datetime.timedelta(days=7)
+            pipe.expire(key, ttl)
+
+    def _remove_registration_token(self, oauth_user, pipe=None):
+        with redpipe.autoexec(pipe=pipe) as pipe:
+            key = 'oauth:usertokens:{}'.format(oauth_user.oid)
+            pipe.delete(key)
 
     def _validate_internal_uniqueness(self, users):
         usernames = []
