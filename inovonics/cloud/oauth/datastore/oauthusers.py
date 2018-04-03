@@ -165,6 +165,15 @@ class OAuthUsers(InoModelBase):
         else:
             raise InvalidDataException("Error in setting password.")
 
+    def clear_password(self, user_id):
+        # Try to get the user (will raise exception if not found)
+        user = self.get_by_id(user_id)
+
+        # Check the password syntax and update it
+        user.clear_password()
+        self._upsert(user)
+        self._create_registration_token(user, 168)  # 7 days = 168 hours lapse time
+
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
             pipe.srem('oauth:users:usernames', oauth_user.username)
@@ -259,6 +268,9 @@ class OAuthUser(InoObjectBase):
     def update_password(self, new_password):
         self._validate_password(new_password)
         self.password_hash = pbkdf2_sha512.hash(new_password)
+
+    def clear_password(self):
+        self.password_hash = ''
 
     def _validate_password(self, password):
         # Password must be at least 8 characters long and max 127 characters.
