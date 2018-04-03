@@ -33,6 +33,10 @@ class OAuthUsers(InoModelBase):
             pipe.on_execute(callback)
         return key_future
 
+    def username_exists(self, username):
+        username = username.upper()
+        return username in self.get_usernames()
+
     def get_ids(self, pipe=None):
         key_future = redpipe.Future()
         with redpipe.autoexec(pipe=pipe) as pipe:
@@ -62,7 +66,7 @@ class OAuthUsers(InoModelBase):
     def get_user_id(self, username, pipe=None):
         decoded_user_id = redpipe.Future()
         with redpipe.autoexec(pipe=pipe) as pipe:
-            user_id = pipe.get('oauth:users:{}'.format(username))
+            user_id = pipe.get('oauth:users:{}'.format(username.upper()))
             def callback():
                 if not user_id:
                     raise NotExistsException()
@@ -191,6 +195,8 @@ class OAuthUsers(InoModelBase):
         with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the user and save it to redis
             db_user = DBOAuthUser(oauth_user.get_dict(), pipe=pipe)
+            #Uppercase the username
+            oauth_user.username = oauth_user.username.upper()
             # Remove empty custom fields from the object
             for field in oauth_user.fields_custom:
                 if not str(getattr(oauth_user, field)).strip():
