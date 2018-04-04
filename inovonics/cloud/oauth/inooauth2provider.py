@@ -105,8 +105,7 @@ class InoOAuth2Provider(OAuth2Provider):
         users = OAuthUsers(self.dstore)
 
         try:
-            uname = username.upper()
-            user_id = users.get_user_id(uname)
+            user_id = users.get_user_id(username)
             user = users.get_by_id(user_id.result)
         except NotExistsException:
             return None

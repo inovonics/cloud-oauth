@@ -34,8 +34,16 @@ class OAuthUsers(InoModelBase):
         return key_future
 
     def username_exists(self, username):
-        username = username.upper()
-        return username in self.get_usernames()
+        exists = redpipe.Future()
+        with redpipe.autoexec() as pipe:
+            user_id = pipe.get('oauth:users:{}'.format(username.upper()))
+            def callback():
+                if not user_id:
+                    exists.set(False)
+                else:
+                    exists.set(True)
+            pipe.on_execute(callback)
+        return exists
 
     def get_ids(self, pipe=None):
         key_future = redpipe.Future()
@@ -180,9 +188,9 @@ class OAuthUsers(InoModelBase):
 
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
-            pipe.srem('oauth:users:usernames', oauth_user.username)
+            pipe.srem('oauth:users:usernames', oauth_user.username.upper())
             pipe.srem('oauth:users:oids', oauth_user.oid)
-            pipe.delete('oauth:users:{}'.format(oauth_user.username))
+            pipe.delete('oauth:users:{}'.format(oauth_user.username.upper()))
             pipe.delete('oauth:users{{{}}}'.format(oauth_user.oid))
             self._remove_registration_token(oauth_user, pipe)
 
@@ -195,15 +203,13 @@ class OAuthUsers(InoModelBase):
         with redpipe.autoexec(pipe=pipe) as pipe:
             # Create/update the user and save it to redis
             db_user = DBOAuthUser(oauth_user.get_dict(), pipe=pipe)
-            #Uppercase the username
-            oauth_user.username = oauth_user.username.upper()
             # Remove empty custom fields from the object
             for field in oauth_user.fields_custom:
                 if not str(getattr(oauth_user, field)).strip():
                     db_user.remove(field, pipe=pipe)
             # Add the user to the usernames set
-            pipe.set('oauth:users:{}'.format(oauth_user.username), oauth_user.oid)
-            pipe.sadd('oauth:users:usernames', oauth_user.username)
+            pipe.set('oauth:users:{}'.format(oauth_user.username.upper()), oauth_user.oid)
+            pipe.sadd('oauth:users:usernames', oauth_user.username.upper())
             pipe.sadd('oauth:users:oids', oauth_user.oid)
 
     def _create_registration_token(self, oauth_user, pipe=None):
