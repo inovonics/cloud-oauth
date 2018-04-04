@@ -33,7 +33,7 @@ class InoOAuth2Provider(OAuth2Provider):
         self.dstore = dstore
 
     def _clientgetter(self, client_id):
-        self.logger.debug("client_id: %s", client_id)
+        self.logger.info("CLIENT_ID: %s", client_id)
         clients = OAuthClients(self.dstore)
         client = clients.get_by_client_id(client_id)
         # Save the client to the request scratch area and return the client
@@ -101,7 +101,7 @@ class InoOAuth2Provider(OAuth2Provider):
         return token
 
     def _usergetter(self, username, password, *args, **kwargs):
-        self.logger.debug("username: %s, password: %s", username, password)
+        self.logger.info("USERNAME: %s, PASSWORD: %s", username, password)
         users = OAuthUsers(self.dstore)
 
         try:
