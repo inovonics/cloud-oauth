@@ -184,7 +184,7 @@ class OAuthUsers(InoModelBase):
         # Check the password syntax and update it
         user.clear_password()
         self._upsert(user)
-        self._create_registration_token(user, 168)  # 7 days = 168 hours lapse time
+        self._create_registration_token(user)
 
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
