@@ -66,6 +66,7 @@ class InoOAuth2Provider(OAuth2Provider):
 
     def _tokensetter(self, otoken, request, *args, **kwargs):
         self.logger.debug("OToken: %s", otoken)
+        self.logger.debug("Reqeust.user: %s", request.user)
         tokens = OAuthTokens(self.dstore)
 
         expires_in = otoken['expires_in']
@@ -90,12 +91,18 @@ class InoOAuth2Provider(OAuth2Provider):
             # Adding some values to the token before sending to the client
             otoken['user_id'] = str(request.user.oid)
             otoken['username'] = request.user.username
+        elif isinstance(request.user, str) and request.user:  #Refresh token case or datalogger
+            token.user = request.user
+
+            users = OAuthUsers(self.dstore)
+            otoken['username'] = token.user
+            otoken['user_id'] = users.get_user_id(token.user)
         else:
             token.user = ''
 
         # Make sure the scopes value is a list (sometimes comes in as a string)
         if isinstance(token.scopes, str):
-            token.scopes = [token.scopes]
+            token.scopes = token.scopes.split()
 
         tokens.create(token, expires_in)
         return token
