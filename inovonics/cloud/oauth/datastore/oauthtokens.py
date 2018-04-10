@@ -84,10 +84,10 @@ class OAuthTokens(InoModelBase):
                 pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.oid)
             else:
                 # Set the expiry on the struct
-                pipe.expire("oauth:tokens{{{}}}".format(token.oid), int(expiry))
+                pipe.expire("oauth:tokens{{{}}}".format(token.oid), int(expiry) * 24)
                 # Set the secondary keys
                 pipe.set("oauth:tokens:access:{}".format(token.access_token), token.oid, ex=int(expiry))
-                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.oid, ex=int(expiry))
+                pipe.set("oauth:tokens:refresh:{}".format(token.refresh_token), token.oid, ex=(int(expiry) * 24))
 
 class OAuthToken(InoObjectBase):
     """
