@@ -186,6 +186,18 @@ class OAuthUsers(InoModelBase):
         self._upsert(user)
         self._create_registration_token(user)
 
+    def erase_password(self, user_id):
+        # Try to get the user (will raise exception if not found)
+        user = self.get_by_id(user_id)
+
+        # Check the password syntax and update it
+        user.clear_password()
+        self._upsert(user)cd 
+
+    def create_registration_token(self, user_id):
+        user = self.get_by_id(user_id)
+        self._create_registration_token(user)
+
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
             pipe.srem('oauth:users:usernames', oauth_user.username.upper())
