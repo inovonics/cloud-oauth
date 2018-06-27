@@ -192,7 +192,7 @@ class OAuthUsers(InoModelBase):
 
         # Check the password syntax and update it
         user.clear_password()
-        self._upsert(user)cd 
+        self._upsert(user)
 
     def create_registration_token(self, user_id):
         user = self.get_by_id(user_id)
