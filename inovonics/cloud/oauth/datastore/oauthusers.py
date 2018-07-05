@@ -177,15 +177,6 @@ class OAuthUsers(InoModelBase):
         else:
             raise InvalidDataException("Error in setting password.")
 
-    def clear_password(self, user_id):
-        # Try to get the user (will raise exception if not found)
-        user = self.get_by_id(user_id)
-
-        # Check the password syntax and update it
-        user.clear_password()
-        self._upsert(user)
-        self._create_registration_token(user)
-
     def erase_password(self, user_id):
         # Try to get the user (will raise exception if not found)
         user = self.get_by_id(user_id)
