@@ -189,6 +189,11 @@ class OAuthUsers(InoModelBase):
         user = self.get_by_id(user_id)
         self._create_registration_token(user)
 
+    def create_registration_token_if_unregistered(self, user_id):
+        user = self.get_by_id(user_id)
+        if not user.password_hash:   #User is unregistered
+            self._create_registration_token(user)
+
     def remove(self, oauth_user):
         with redpipe.autoexec() as pipe:
             pipe.srem('oauth:users:usernames', oauth_user.username.upper())
